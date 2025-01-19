@@ -29,7 +29,7 @@ There is a `build.sh` script in the root directory that will build Mira for you.
 To run Mira, you will need to install QEMU. Once you have QEMU installed, you can run Mira by executing the following command:
 
 ```bash
-qemu-system-x86_64 -cdrom mira.iso
+qemu-system-x86_64 -cdrom build/mira.img
 ```
 
 ## License

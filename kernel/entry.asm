@@ -1,8 +1,8 @@
 [bits 64]
-[extern mk_main]
+[extern mk_entry]
 
 section .text
 global _start
 _start:
-    call mk_main
+    call mk_entry
     jmp $

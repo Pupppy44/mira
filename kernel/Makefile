@@ -5,14 +5,14 @@ GDB = gdb
 LD = ld.lld
 ASM = nasm
 
-INC = -I/
+INC = -I/include
 SRC = $(shell find . -type f -name "*.c")
 ASM_SRC = $(shell find . -type f -name "*.asm")
 
 # CRITICAL: assembly must be linked first
 OBJ = ${ASM_SRC:.asm=.o} ${SRC:.c=.o} 
 
-CCFLAGS = -Iinc -ggdb -c -ffreestanding -target x86_64-none-elf
+CCFLAGS = -Iinc -ggdb -c -ffreestanding -target x86_64-none-elf -w
 LDFLAGS = -Ttext 0x8200
 LDFLAGS_BIN = ${LDFLAGS} --oformat binary
 ASFLAGS = -f elf64
@@ -35,4 +35,4 @@ kernel.elf: ${OBJ}
 	${ASM} $< ${ASFLAGS} -o $@
 
 clean:
-	rm -f kernel.elf *.o **/*.o
+	rm -f kernel.elf *.o *.bin **/*.o
