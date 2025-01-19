@@ -4,10 +4,10 @@
 #include <stdint.h>
 #include "syscalls.h"
 
-#define KERNEL_CODE_SELECTOR 0x08
-#define KERNEL_DATA_SELECTOR 0x10
+#define MK_CODE_SELECTOR 0x08
+#define MK_DATA_SELECTOR 0x10
 
-// Structure for an IDT entry (64-bit)
+// Structure for an IDT entry
 typedef struct {
     uint16_t offset_low;
     uint16_t segment_selector;
@@ -19,16 +19,16 @@ typedef struct {
     uint32_t reserved1;
 } __attribute__((packed)) mk_idt_entry;
 
-// Structure for the IDT pointer (used with lidt)
+// Structure for the IDT pointer
 typedef struct {
     uint16_t limit;
     uint64_t base;
 } __attribute__((packed)) mk_idt_ptr;
 
 // Function to set an IDT entry
-void set_idt_entry(mk_idt_entry *entry, uintptr_t handler, uint16_t segment_selector, uint8_t type_attributes);
+void mk_idt_set_entry(mk_idt_entry *entry, uintptr_t handler, uint16_t segment_selector, uint8_t type_attributes);
 
 // Function to initialize the IDT
-void idt_init();
+void mk_idt_init();
 
 #endif

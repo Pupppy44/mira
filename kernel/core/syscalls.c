@@ -1,52 +1,42 @@
 #include "../include/syscalls.h"
 
-const char* ulongToString(unsigned long num) {
-    static char str[21];
-    int i = 0;
-    do {
-        str[i++] = num % 10 + '0';
-        num /= 10;
-    } while (num > 0);
-    str[i] = '\0';
-
-    // Reverse the string
-    for (int j = 0; j < i / 2; j++) {
-        char temp = str[j];
-        str[j] = str[i - j - 1];
-        str[i - j - 1] = temp;
-    }
-
-    return str;
-}
-
-void mk_print(const char* str) {
-    static uint16_t* terminal_buffer = (uint16_t*)0xb8000;
-    static size_t terminal_pos = 0;
-
-    for (size_t i = 0; str[i] != '\0'; i++) {
-        terminal_buffer[terminal_pos++] = (0x0F << 8) | str[i];
-    }
-}
-
-void sys_test(unsigned long status) {
-    mk_print("Syscall sys_test called with status: ");
-    mk_print(ulongToString(status));
-    mk_print("\n");
-}
-
 // Syscall table
-typedef long (*syscall_func_t)(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long);
+typedef long (*mk_syscall_function)(mk_syscall_args);
 
-syscall_func_t syscall_table[] = {
+// Syscall implementations
+void sys_print(mk_syscall_args args) {
+    char* str = (char*)"Hello, World!";
+    unsigned long len = 13;
+
+    for (unsigned long i = 0; i < len; i++) {
+        // Print the character
+        *(unsigned char*)(0xb8000 + i * 2) = str[i];
+        *(unsigned char*)(0xb8000 + i * 2 + 1) = 0x07;
+    }
+}
+
+void sys_vga(mk_syscall_args args) {
+    unsigned char* vga = (unsigned char*)0xA0000;
+    unsigned char color = (unsigned char)args.arg1;
+    unsigned char pixel = (unsigned char)args.arg2;
+    
+    vga[pixel] = color;
+}
+
+mk_syscall_function syscall_table[] = {
     NULL,
-    (syscall_func_t)sys_test,
+    (mk_syscall_function)sys_print,
+    (mk_syscall_function)sys_print,
+    (mk_syscall_function)sys_print,
+    (mk_syscall_function)sys_print,
+    (mk_syscall_function)sys_print,
 };
 
-// The syscall handler
-void syscall_handler() {
-    registers_t regs;
+// Mira Kernel Syscall Handler
+void mk_syscall_handler() {
+    mk_syscall_registers regs;
 
-    // Save the registers
+    // Grab the registers to use
     __asm__ volatile(
         "mov %%rax, %0\n"
         "mov %%rdi, %1\n"
@@ -59,25 +49,14 @@ void syscall_handler() {
     );
   
     unsigned long syscall_number = regs.rax;
-    mk_print("Syscall number: ");
-    mk_print(ulongToString(syscall_number));
-    mk_print("\n");
 
     if (syscall_number > 0 && syscall_number < sizeof(syscall_table) / sizeof(syscall_table[0]) && syscall_table[syscall_number]) {
-        syscall_func_t func = syscall_table[syscall_number];
-
-        // Extract arguments from the registers_t structure
-        unsigned long arg1 = regs.rdi;
-        unsigned long arg2 = regs.rsi;
-        unsigned long arg3 = regs.rdx;
-        unsigned long arg4 = regs.r10;
-        unsigned long arg5 = regs.r8;
-        unsigned long arg6 = regs.r9;
+        mk_syscall_function func = syscall_table[syscall_number];
 
         // Call the syscall implementation
-        long result = func(arg1, arg2, arg3, arg4, arg5, arg6);
+        long result = func((mk_syscall_args){regs.rdi, regs.rsi, regs.rdx, regs.r10, regs.r8, regs.r9});
 
-        // Set the return value in rax (important for user-space syscalls)
+        // Set the return value in rax
         regs.rax = result;
     }
 
