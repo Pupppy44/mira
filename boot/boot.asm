@@ -22,7 +22,7 @@ mov byte[boot_drive], dl
 ; Load the second sector (skip printing)
 mov bx, 0x0002
 
-; Load bootloader + kernel sectors
+; Load boot + kernel sectors
 mov cx, [kernel_size]
 add cx, 2
 mov dx, 0x7E00

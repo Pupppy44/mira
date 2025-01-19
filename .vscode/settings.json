@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "tasks.h": "c",
+        "compare": "cpp",
+        "cstdint": "cpp",
+        "idt.h": "c",
+        "syscalls.h": "c",
+        "stddef.h": "c"
+    }
+}

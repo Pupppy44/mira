@@ -1,0 +1,16 @@
+#include "../include/mem.h"
+
+// Mira Kernel Memory Bump Allocator
+void* mk_malloc(size_t size) {
+    static uintptr_t current_heap = MK_HEAP_START;
+
+    if (current_heap + size > MK_HEAP_START + MK_HEAP_SIZE) {
+        // Out of memory
+        return NULL;
+    }
+
+    uintptr_t allocated_address = current_heap;
+    current_heap += size;
+    
+    return (void*)allocated_address;
+}
