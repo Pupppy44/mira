@@ -1,18 +1,27 @@
 #include "../include/syscalls.h"
 
+/*
+Syscall Args:
+arg1: rdi
+arg2: rsi
+arg3: rdx
+arg4: r10
+arg5: r8
+arg6: r9
+*/
+
 // Syscall table
 typedef long (*mk_syscall_function)(mk_syscall_args);
 
 // Syscall implementations
 void sys_print(mk_syscall_args args) {
-    char* str = (char*)"Hello, World!";
-    unsigned long len = 13;
-
-    for (unsigned long i = 0; i < len; i++) {
-        // Print the character
-        *(unsigned char*)(0xb8000 + i * 2) = str[i];
-        *(unsigned char*)(0xb8000 + i * 2 + 1) = 0x07;
-    }
+    // Literally all we do is print a char (rdi) at position (rsi) as a color (rdx)
+    char* vga = (char*)0xB8000;
+    vga[0] = 'B';
+    vga[1] = 0x04;
+    while (1);
+    vga[args.arg2 * 2] = (char)args.arg1;
+    vga[args.arg2 * 2 + 1] = (char)args.arg3;
 }
 
 void sys_vga(mk_syscall_args args) {
@@ -25,10 +34,6 @@ void sys_vga(mk_syscall_args args) {
 
 mk_syscall_function syscall_table[] = {
     NULL,
-    (mk_syscall_function)sys_print,
-    (mk_syscall_function)sys_print,
-    (mk_syscall_function)sys_print,
-    (mk_syscall_function)sys_print,
     (mk_syscall_function)sys_print,
 };
 
