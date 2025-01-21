@@ -1,103 +1,62 @@
-#include "include/idt.h"
-#include "include/tasks.h"
-#include "include/pit.h"
-#include <stdint.h>
+// kernel.c
 
-// We must rely on preemptive scheduling via interrupts.
-// REMEMBER: On x86_64, a proper context switch should save/restore all registers
-//           (RBP, RBX, R12–R15, etc.). Below is only a simplified illustration.
+#include <stdint.h>     // For fixed-width integer types like uint16_t, etc.
+#include "include/idt.h"  // Assuming you use mk_idt_init(), etc.
 
-char randChar() {
-    // we must implement our own rand in here
 
-    // this is a simple implementation of a random number generator
-
-    static unsigned int seed = 0;
-    seed = seed * 1103515245 + 12345;
-    return (seed / 65536) % 255; // return a number between 0 and 255, which is a valid ASCII character  
+// Inline assembly for input from an I/O port (no standard library)
+static inline uint8_t inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
 }
 
-// Timer interrupt handler - forced context switch
-//__attribute__((interrupt))
-// void pit_timer_interrupt_handler(void *frame /* or interrupt frame pointer */)
-// {
-//             *(unsigned char*)0xB8006 = randChar();
-//         *(unsigned char*)0xB8007 = 0x03; // Set color
-        
-//     // 1. Save registers of the current task
-//     //    Here, we only illustrate saving the stack pointer (rsp).
-//     //    In reality, you'd also push/preserve other registers in ASM.
-//     uintptr_t saved_rsp;
-//     __asm__ volatile ("movq %%rsp, %0" : "=r" (saved_rsp));
-//     int old_task = current_task;
-//     if (old_task >= 0) {
-//         g_task_contexts[old_task].rsp = saved_rsp;
-//     }
+// Inline assembly for output to an I/O port (no standard library)
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+}
 
-//     // 2. Get next task index
-//     int next = get_next_task();
-//     if (next < 0) {
-//         // Acknowledge PIC if needed: outb(0x20, 0x20);
-//         return; 
-//     }
+// Simple PIT initialization, sets divisor to achieve desired frequency
+static void init_pit(uint32_t frequency) {
+    // The PIT input clock is ~1.193182 MHz
+    uint16_t divisor = (uint16_t)(1193180 / frequency);
 
-//     // 3. Restore next task's registers (rsp) and jump there
-//     uintptr_t new_rsp = g_task_contexts[next].rsp;
+    // 0x36 sets channel 0, low/high byte, rate generator mode
+    outb(0x43, 0x36);
 
-//     // If the new task is just starting, initialize it from tasks.c info:
-//     mk_task** all_tasks = mk_get_tasks();
-//     mk_task* next_task = all_tasks[next];
-//     if (new_rsp == 0) {
-//         // The task has not run yet. Set it to the top of its allocated stack.
-//         new_rsp = next_task->stack_ptr;
-//         g_task_contexts[next].rsp = new_rsp;
-//     }
+    // Send low byte, then high byte
+    outb(0x40, (uint8_t)(divisor & 0xFF));
+    outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
 
-//     // Acknowledge the PIC (if using legacy PIC). Example:
-//     // outb(0x20, 0x20);
+    // Unmask IRQ0 on Master PIC
+    // Read the current mask
+    uint8_t mask = inb(0x21);
+    // Clear the bit for IRQ0
+    mask &= ~(1 << 0);
+    // Write back to unmask
+    outb(0x21, mask);
+}
 
-//     // 4. Switch to the next task
-//     // Use IRET-based approach in real code or ring transitions. Here, a simplified ring-0 example:
-//     __asm__ volatile (
-//         "movq %0, %%rsp\n\t"   // Load next task RSP
-//         // The simplest approach is a "jmp" to the code, but if the code has jmp $,
-//         // we rely on the next timer interrupt to switch again.
-//         "jmp *%1\n\t"
-//         :
-//         : "r"(new_rsp), "r"(next_task->base)
-//         : "memory"
-//     );
-// }
-
-// Example kernel entry
-int mk_entry()
-{
-    // 1. Initialize IDT, set timer ISR to pit_timer_interrupt_handler, etc:
+//
+// mk_entry: strict entry point of the kernel
+//  1) Initialize IDT
+//  2) Initialize the PIT
+//  3) Enable interrupts (sti)
+//  4) Enter an infinite loop or proceed with your OS flow
+//
+int mk_entry() {
+    // Initialize the IDT (assumes mk_idt_init() is in IDT.c)
     mk_idt_init();
-    //init_pit(1000); // 1000 Hz
-    //=unmask_irq0_on_pic();       // Allow IRQ0 to fire
-    enable_interrupts();        // STI: start receiving interrupts
-    
-    // 2. Create tasks
-    // First shellcode showing random chars
-    unsigned char shellcode1[] = { 0xC6, 0x04, 0x25, 0x00, 0x80, 0x0B, 0x00, 0x52, 0xC6, 0x04, 0x25, 0x01, 0x80, 0x0B, 0x00, 0x02 };
 
-    // Infinite loop shellcode
-    unsigned char shellcode2[] = {
-        0xEB, 0xFE // jmp $
-    };
+    // Initialize the PIT to (for example) 100 Hz
+    init_pit(100);
 
-    mk_task* user_task1 = mk_create_task(shellcode1, sizeof(shellcode1));
-    //mk_task* user_task2 = mk_create_task(shellcode2, sizeof(shellcode2));
+    __asm__ volatile("sti");
 
-    // 3. Main kernel loop
-    while (1) {
-        // Do any idle or background work here
-        // The PIT interrupt will preempt us, call pit_timer_interrupt_handler,
-        // and context-switch to user_task1 or user_task2, each for some timeslice.
-        *(unsigned char*)0xB8008 = randChar();
-       *(unsigned char*)0xB8009 = 0x01; // Set color
-        
+    // Spin or continue your OS kernel flow
+    for (;;) {
+        // Do nothing or schedule tasks, etc.
     }
+
     return 0;
 }
