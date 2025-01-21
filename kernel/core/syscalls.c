@@ -1,33 +1,18 @@
 #include "../include/syscalls.h"
 
-/*
-Syscall Args:
-arg1: rdi
-arg2: rsi
-arg3: rdx
-arg4: r10
-arg5: r8
-arg6: r9
-*/
-
 // Syscall table
 typedef long (*mk_syscall_function)(mk_syscall_args);
 
 // Syscall implementations
 void sys_print(mk_syscall_args args) {
-    // Literally all we do is print a char (rdi) at position (rsi) as a color (rdx)
-    char* vga = (char*)0xB8000;
-    vga[0] = 'B';
-    vga[1] = 0x04;
-    while (1);
-    vga[args.arg2 * 2] = (char)args.arg1;
-    vga[args.arg2 * 2 + 1] = (char)args.arg3;
+    *(unsigned char*)0xb8000 = (unsigned char)args.arg1; // rdi
+    *(unsigned char*)0xb8001 = (unsigned char)args.arg2; // rsi
 }
 
 void sys_vga(mk_syscall_args args) {
     unsigned char* vga = (unsigned char*)0xA0000;
-    unsigned char color = (unsigned char)args.arg1;
-    unsigned char pixel = (unsigned char)args.arg2;
+    unsigned char color = (unsigned char)args.arg1; // rdi
+    unsigned char pixel = (unsigned char)args.arg2; // rsi
     
     vga[pixel] = color;
 }
@@ -35,6 +20,7 @@ void sys_vga(mk_syscall_args args) {
 mk_syscall_function syscall_table[] = {
     NULL,
     (mk_syscall_function)sys_print,
+    (mk_syscall_function)sys_vga
 };
 
 // Mira Kernel Syscall Handler
@@ -59,7 +45,7 @@ void mk_syscall_handler() {
         mk_syscall_function func = syscall_table[syscall_number];
 
         // Call the syscall implementation
-        long result = func((mk_syscall_args){regs.rdi, regs.rsi, regs.rdx, regs.r10, regs.r8, regs.r9});
+        long result = func((mk_syscall_args){ regs.rdi, regs.rsi, regs.rdx, regs.r10, regs.r8, regs.r9 });
 
         // Set the return value in rax
         regs.rax = result;

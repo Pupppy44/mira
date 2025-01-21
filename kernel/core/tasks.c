@@ -13,7 +13,8 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size) {
     new_task->id = mk_tasks_count++;
     new_task->base = (uintptr_t)mk_malloc(shellcode_size);
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
-    new_task->stack_ptr = new_task->stack + 4096; // Stack start
+    new_task->stack_ptr = new_task->stack + 4096; // Stack start (grows down)
+    new_task->status = 0; // Not running
     
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed
@@ -32,8 +33,8 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size) {
 
 void mk_execute_task(mk_task* task) {
     if (task && task->base) {
-        void (*func)() = (void (*)())task->base;
-        func();
+        // By setting the status as running, the PIT scheduler will pick it up
+        task->status = 1;
     }
 }
 

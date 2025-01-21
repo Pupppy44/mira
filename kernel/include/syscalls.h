@@ -15,7 +15,7 @@ typedef struct {
     unsigned long arg1, arg2, arg3, arg4, arg5, arg6;
 } mk_syscall_args;
 
-// Mira Kernel Syscall Handler
+// Function to handle a syscall
 void mk_syscall_handler();
 
 #endif

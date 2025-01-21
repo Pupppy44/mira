@@ -9,4 +9,6 @@
 
 void* mk_malloc(size_t size);
 
+void mk_free(void* ptr);
+
 #endif

@@ -1,8 +1,10 @@
 #ifndef KERNEL_IDT_H
 #define KERNEL_IDT_H
 
-#include <stdint.h>
+#include "pit.h"
 #include "syscalls.h"
+#include "tasks.h"
+#include "util.h"
 
 #define MK_CODE_SELECTOR 0x08
 #define MK_DATA_SELECTOR 0x10
@@ -17,16 +19,22 @@ typedef struct {
     uint16_t offset_middle;
     uint32_t offset_high;
     uint32_t reserved1;
-} __attribute__((packed)) mk_idt_entry;
+} __attribute__((packed)) mk_idt_entry_t;
 
 // Structure for the IDT pointer
 typedef struct {
     uint16_t limit;
     uint64_t base;
-} __attribute__((packed)) mk_idt_ptr;
+} __attribute__((packed)) mk_idt_ptr_t;
+
+// Function to prepare an interrupt
+void mk_idt_pre_handler();
+
+// Function to finish an interrupt
+void mk_idt_post_handler();
 
 // Function to set an IDT entry
-void mk_idt_set_entry(mk_idt_entry *entry, uintptr_t handler, uint16_t segment_selector, uint8_t type_attributes);
+void mk_idt_set_entry(mk_idt_entry_t *entry, uintptr_t handler, uint16_t segment_selector, uint8_t type_attributes);
 
 // Function to initialize the IDT
 void mk_idt_init();

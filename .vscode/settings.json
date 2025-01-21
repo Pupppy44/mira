@@ -7,6 +7,7 @@
         "idt.h": "c",
         "syscalls.h": "c",
         "stddef.h": "c",
-        "pit.h": "c"
+        "pit.h": "c",
+        "mem.h": "c"
     }
 }

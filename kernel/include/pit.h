@@ -3,16 +3,15 @@
 
 #include <stdint.h>
 
-// Function prototypes
-void init_pit(uint32_t frequency);
-void unmask_irq0_on_pic();
-void enable_interrupts();
+#define MK_PIT_FREQUENCY 1000 // 1000 Hz (1ms)
 
-// Constants
-#define PIT_BASE_FREQUENCY 1193180 // Base frequency of the PIT
+// Function to initialize the PIT
+void mk_pit_init();
 
-// Macros for common frequencies
-#define PIT_FREQUENCY_100HZ 100
-#define PIT_FREQUENCY_1000HZ 1000
+// Function to handle PIT interrupts
+void mk_pit_handler();
 
-#endif // PIT_H
+// Function to get the PIT tick count
+uint64_t mk_pit_get_tick_count();
+
+#endif
