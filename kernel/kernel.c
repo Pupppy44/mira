@@ -1,77 +1,103 @@
 #include "include/idt.h"
 #include "include/tasks.h"
+#include "include/pit.h"
 #include <stdint.h>
 
-// Round-robin scheduling variables
-int current_process = 0;
-register_t saved_context; // For saving context during interrupts
+// We must rely on preemptive scheduling via interrupts.
+// REMEMBER: On x86_64, a proper context switch should save/restore all registers
+//           (RBP, RBX, R12–R15, etc.). Below is only a simplified illustration.
 
-extern void user_regs_switch(register_t* regs);
+char randChar() {
+    // we must implement our own rand in here
 
-// Round-robin scheduler function
-void scheduler() {
-    mk_task** task_list = mk_get_tasks();
-    int num_tasks = mk_get_task_count();
+    // this is a simple implementation of a random number generator
 
-    if (num_tasks == 0) {
-        // No tasks to schedule, just loop
-        while (1);
-    }
-
-    while (1) {
-        // Get the current and next task
-        mk_task *current_task = task_list[current_process];
-        int next_process = (current_process + 1) % num_tasks;
-        mk_task *next_task = task_list[next_process];
-
-        // Save current task's registers
-        // (Assuming 'saved_context' is used when the scheduler is called via an interrupt)
-        if (current_task != NULL) {
-            saved_context.eax = current_task->regs.eax;
-            saved_context.ebx = current_task->regs.ebx;
-            saved_context.ecx = current_task->regs.ecx;
-            saved_context.edx = current_task->regs.edx;
-            saved_context.esi = current_task->regs.esi;
-            saved_context.edi = current_task->regs.edi;
-            saved_context.ebp = current_task->regs.ebp;
-            saved_context.esp = current_task->regs.esp;
-            saved_context.useresp = current_task->regs.useresp;
-            saved_context.eflags = current_task->regs.eflags;
-            saved_context.eip = current_task->regs.eip;
-            saved_context.cr3 = current_task->regs.cr3;
-        }
-
-        // Switch to the next process by loading its registers
-        user_regs_switch(&next_task->regs);
-
-                *(unsigned char*)0xb8000 = 'H';
-        *(unsigned char*)0xb8001 = 0x05;
-
-        // The assembly function 'user_regs_switch' will handle the actual switch.
-        // Execution will resume in the next task after the iret.
-
-        // Update the current process index
-        current_process = next_process;
-    }
+    static unsigned int seed = 0;
+    seed = seed * 1103515245 + 12345;
+    return (seed / 65536) % 255; // return a number between 0 and 255, which is a valid ASCII character  
 }
 
-// Mira Kernel Entry Point
-int mk_entry() {
+// Timer interrupt handler - forced context switch
+//__attribute__((interrupt))
+// void pit_timer_interrupt_handler(void *frame /* or interrupt frame pointer */)
+// {
+//             *(unsigned char*)0xB8006 = randChar();
+//         *(unsigned char*)0xB8007 = 0x03; // Set color
+        
+//     // 1. Save registers of the current task
+//     //    Here, we only illustrate saving the stack pointer (rsp).
+//     //    In reality, you'd also push/preserve other registers in ASM.
+//     uintptr_t saved_rsp;
+//     __asm__ volatile ("movq %%rsp, %0" : "=r" (saved_rsp));
+//     int old_task = current_task;
+//     if (old_task >= 0) {
+//         g_task_contexts[old_task].rsp = saved_rsp;
+//     }
+
+//     // 2. Get next task index
+//     int next = get_next_task();
+//     if (next < 0) {
+//         // Acknowledge PIC if needed: outb(0x20, 0x20);
+//         return; 
+//     }
+
+//     // 3. Restore next task's registers (rsp) and jump there
+//     uintptr_t new_rsp = g_task_contexts[next].rsp;
+
+//     // If the new task is just starting, initialize it from tasks.c info:
+//     mk_task** all_tasks = mk_get_tasks();
+//     mk_task* next_task = all_tasks[next];
+//     if (new_rsp == 0) {
+//         // The task has not run yet. Set it to the top of its allocated stack.
+//         new_rsp = next_task->stack_ptr;
+//         g_task_contexts[next].rsp = new_rsp;
+//     }
+
+//     // Acknowledge the PIC (if using legacy PIC). Example:
+//     // outb(0x20, 0x20);
+
+//     // 4. Switch to the next task
+//     // Use IRET-based approach in real code or ring transitions. Here, a simplified ring-0 example:
+//     __asm__ volatile (
+//         "movq %0, %%rsp\n\t"   // Load next task RSP
+//         // The simplest approach is a "jmp" to the code, but if the code has jmp $,
+//         // we rely on the next timer interrupt to switch again.
+//         "jmp *%1\n\t"
+//         :
+//         : "r"(new_rsp), "r"(next_task->base)
+//         : "memory"
+//     );
+// }
+
+// Example kernel entry
+int mk_entry()
+{
+    // 1. Initialize IDT, set timer ISR to pit_timer_interrupt_handler, etc:
     mk_idt_init();
+    //init_pit(1000); // 1000 Hz
+    //=unmask_irq0_on_pic();       // Allow IRQ0 to fire
+    enable_interrupts();        // STI: start receiving interrupts
+    
+    // 2. Create tasks
+    // First shellcode showing random chars
+    unsigned char shellcode1[] = { 0xC6, 0x04, 0x25, 0x00, 0x80, 0x0B, 0x00, 0x52, 0xC6, 0x04, 0x25, 0x01, 0x80, 0x0B, 0x00, 0x02 };
 
-    // Example shellcode - we'll leave this part as is for now
-    unsigned char shellcode[] = { 0xC6, 0x04, 0x25, 0x00, 0x80, 0x0B, 0x00, 0x4D, 0xC6, 0x04, 0x25, 0x01, 0x80, 0x0B, 0x00, 0x03 };
+    // Infinite loop shellcode
+    unsigned char shellcode2[] = {
+        0xEB, 0xFE // jmp $
+    };
 
-    // Create the tasks using mk_create_task (which sets stack and base)
-    mk_task *user_task1 = mk_create_task(shellcode, sizeof(shellcode));
+    mk_task* user_task1 = mk_create_task(shellcode1, sizeof(shellcode1));
+    //mk_task* user_task2 = mk_create_task(shellcode2, sizeof(shellcode2));
 
-    user_task1->regs.eip = (uintptr_t)user_task1->base; // Set the instruction pointer to the base address
-    user_task1->regs.esp = (uintptr_t)user_task1->stack; // Set the stack pointer to the top of the stack
-    user_task1->regs.useresp = user_task1->regs.esp; // Set user stack pointer
-    user_task1->regs.eflags = 0x202; // Enable interrupts (example)
-
-    // Start the round-robin scheduler
-    scheduler();
-
+    // 3. Main kernel loop
+    while (1) {
+        // Do any idle or background work here
+        // The PIT interrupt will preempt us, call pit_timer_interrupt_handler,
+        // and context-switch to user_task1 or user_task2, each for some timeslice.
+        *(unsigned char*)0xB8008 = randChar();
+       *(unsigned char*)0xB8009 = 0x01; // Set color
+        
+    }
     return 0;
 }

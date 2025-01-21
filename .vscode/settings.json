@@ -6,6 +6,7 @@
         "cstdint": "cpp",
         "idt.h": "c",
         "syscalls.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "pit.h": "c"
     }
 }

@@ -8,7 +8,7 @@ init_pt_protected:
     mov edi, 0x1000
     mov cr3, edi
     xor eax, eax
-    mov ecx, 4096
+    mov ecx, 4096 
     rep stosd
 
     ; Set edi back to PML4T[0]
@@ -25,7 +25,7 @@ init_pt_protected:
     ; NOTE: edi is at 0x3000
     add edi, 0x1000             ; Go to PT[0]
     mov ebx, 0x00000003         ; EBX has address 0x0000 with flags 0x0003
-    mov ecx, 512                ; Do the operation 512 times
+    mov ecx, 512               ; 512 entries in the page table
 
     add_page_entry_protected:
         mov dword[edi], ebx

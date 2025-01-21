@@ -5,6 +5,7 @@ static int mk_tasks_count = 0;
 
 mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size) {
     mk_task* new_task = (mk_task*)mk_malloc(sizeof(mk_task));
+    
     if (!new_task) {
         return NULL; // Allocation failed
     }
@@ -12,6 +13,8 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size) {
     new_task->id = mk_tasks_count++;
     new_task->base = (uintptr_t)mk_malloc(shellcode_size);
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
+    new_task->stack_ptr = new_task->stack + 4096; // Stack start
+    
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed
     }
