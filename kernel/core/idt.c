@@ -37,7 +37,9 @@ void mk_idt_load(mk_idt_ptr *idt_ptr) {
 
 // Mira Kernel IDT Handler
 void mk_idt_handler(void) {
-    __asm__ volatile ("cli");
+    // Reenable interrupts asap so other interrupts can be handled
+    outb(0x20, 0x20);
+    __asm__ volatile ("sti");
 
     // Write random character to video memory
     *(unsigned char*)0xb8000 = randChar();
@@ -46,9 +48,9 @@ void mk_idt_handler(void) {
     // Get the value of rax (assuming we want the lower 8 bits as a 2-digit number)
     uint64_t rax;
     __asm__ volatile ("mov %%rax, %0" : "=r"(rax));
-
-    // Extract the lower byte of rax
-    uint8_t value = (uint8_t)(rax & 0xFF);  // Take the least significant byte (LSB)
+uint8_t value = (uint8_t)(rax & 0xFF);
+    if (value != 555) {
+            // Extract the lower byte of rax
 
     // Extract tens and ones digits
     uint8_t tens = value / 10;  // Tens place
@@ -65,9 +67,7 @@ void mk_idt_handler(void) {
     // Write ones digit to 0xb8014
     *(unsigned char*)0xb8014 = ones_ascii;
     *(unsigned char*)0xb8015 = 0x03;  // Set attribute byte (color code)
-
-    // Send EOI to the master PIC
-    outb(0x20, 0x20);
+    }
 
     // Pop the error code from the stack and return to the caller
     __asm__ volatile (
@@ -86,14 +86,15 @@ void mk_idt_handler(void) {
         "pop %rcx\n"
         "pop %rbx\n"
         "pop %rax\n"
-        "sti\n"
-        "iret"
+        "iretq"
     );
 }
 
 // Mira Kernel IDT PIT Handler
 void mk_idt_pit_handler(void) {
-    __asm__ volatile ("cli");
+    // Reenable interrupts asap so other interrupts can be handled
+    outb(0x20, 0x20);
+    __asm__ volatile ("sti");
 
     // Get the interrupt number
     uint64_t rax;
@@ -102,9 +103,6 @@ void mk_idt_pit_handler(void) {
     *(unsigned char*)0xb8006 = randChar();
     *(unsigned char*)0xb8007 = 0x05;
 
-    // Send EOI to the master PIC
-    outb(0x20, 0x20);
-
     // Pop the error code from the stack and return to the caller
     __asm__ volatile (
         "pop %r15\n"
@@ -122,8 +120,7 @@ void mk_idt_pit_handler(void) {
         "pop %rcx\n"
         "pop %rbx\n"
         "pop %rax\n"
-        "sti\n"
-        "iret"
+        "iretq"
     );
 }
 
@@ -141,7 +138,7 @@ void mk_idt_init() {
     //mk_idt_set_entry(&idt[0x80], (uintptr_t)mk_syscall_handler, MK_CODE_SELECTOR, 0xEE); // Ring 3
 
     // Set the IDT entry for the PIT timer interrupt (0x32)
-    //mk_idt_set_entry(&idt[0x32], (uintptr_t)mk_idt_pit_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
+    mk_idt_set_entry(&idt[0x20], (uintptr_t)mk_idt_pit_handler, MK_CODE_SELECTOR, 0x8E); // Ring 0
 
     // Load the IDT
     mk_idt_load(&idt_ptr);
