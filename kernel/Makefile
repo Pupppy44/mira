@@ -8,6 +8,7 @@ ASM = nasm
 INC = -I/inc
 SRC = $(shell find . -type f -name "*.c")
 ASM_SRC = $(shell find . -type f -name "*.asm")
+SHELL_OBJ = ../shell/shell.o  # Link ms_entry so we can run the shell as a process
 
 # CRITICAL: assembly must be linked first
 OBJ = ${ASM_SRC:.asm=.o} ${SRC:.c=.o} 
@@ -22,7 +23,7 @@ all: kernel.bin
 
 # Build kernel.bin (binary format)
 kernel.bin: ${OBJ}
-	${LD} -o $@ ${LDFLAGS_BIN} $^
+	${LD} -o $@ ${LDFLAGS_BIN} $^ ${SHELL_OBJ} 
 
 # Optional: Keep kernel.elf for debugging or other purposes
 kernel.elf: ${OBJ}

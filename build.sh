@@ -5,11 +5,12 @@ rm -f build/mira.img
 (make -C boot)
 boot_result=$?
 
-(make -C kernel)
-kernel_result=$?
-
+# IMPORTANT: Build shell FIRST for the kernel to access its entry function
 (make -C shell)
 shell_result=$?
+
+(make -C kernel)
+kernel_result=$?
 
 if (test -f boot/boot.bin) && (test -f kernel/kernel.bin) && (test -f shell/shell.bin)
 then
