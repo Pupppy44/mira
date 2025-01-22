@@ -17,15 +17,15 @@ LDFLAGS = -Ttext 0x8200
 LDFLAGS_BIN = ${LDFLAGS} --oformat binary
 ASFLAGS = -f elf64
 
-# Default target for kernel (produce kernel.bin instead of kernel)
-all: kernel.bin
+# Default target for shell (produce shell.bin instead of kernel)
+all: shell.bin
 
-# Build kernel.bin (binary format)
-kernel.bin: ${OBJ}
+# Build shell.bin (binary format)
+shell.bin: ${OBJ}
 	${LD} -o $@ ${LDFLAGS_BIN} $^
 
-# Optional: Keep kernel.elf for debugging or other purposes
-kernel.elf: ${OBJ}
+# Optional: Keep shell.elf for debugging or other purposes
+shell.elf: ${OBJ}
 	${LD} -o $@ ${LDFLAGS} $^
 
 %.o: %.c
@@ -35,4 +35,4 @@ kernel.elf: ${OBJ}
 	${ASM} $< ${ASFLAGS} -o $@
 
 clean:
-	rm -f kernel.elf *.o *.bin **/*.o
+	rm -f shell.elf *.o *.bin **/*.o

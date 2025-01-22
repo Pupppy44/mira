@@ -6,16 +6,19 @@ rm -f build/mira.img
 boot_result=$?
 
 (make -C kernel)
-make_result=$?
+kernel_result=$?
 
-if (test -f boot/boot.bin) && (test -f kernel/kernel.bin)
+(make -C shell)
+shell_result=$?
+
+if (test -f boot/boot.bin) && (test -f kernel/kernel.bin) && (test -f shell/shell.bin)
 then
     echo "Build successful"
 else
     echo "Build failed"
 fi
 
-if [ "$boot_result" = "0" ] && [ "$make_result" = "0" ]
+if [ "$boot_result" = "0" ] && [ "$kernel_result" = "0" ] && [ "$shell_result" = "0" ]
 then
     kernel_size=$(wc -c < kernel/kernel.bin)
     kernel_sectors=$(( ($kernel_size + 511) / 512 ))

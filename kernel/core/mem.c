@@ -1,4 +1,4 @@
-#include "../include/mem.h"
+#include "../inc/mem.h"
 
 // Mira Kernel Memory Bump Allocator
 void* mk_malloc(size_t size) {

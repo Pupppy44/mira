@@ -10,4 +10,6 @@ find . -type f -name '*.bin' -delete
 
 (cd ./kernel ; rm -f kernel)
 
+(cd ./shell ; rm -f shell)
+
 echo "Clean finished successfully"

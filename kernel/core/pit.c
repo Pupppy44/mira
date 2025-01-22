@@ -1,6 +1,6 @@
-#include "../include/pit.h"
-#include "../include/idt.h"
-#include "../include/scheduler.h"
+#include "../inc/pit.h"
+#include "../inc/idt.h"
+#include "../inc/scheduler.h"
 
 static uint64_t mk_pit_ticks = 0;
 

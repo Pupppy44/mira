@@ -1,4 +1,4 @@
-#include "../include/syscalls.h"
+#include "../inc/syscalls.h"
 
 // Syscall table
 typedef long (*mk_syscall_function)(mk_syscall_args);

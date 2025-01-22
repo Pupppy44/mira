@@ -1,4 +1,4 @@
-#include "../include/tasks.h" 
+#include "../inc/tasks.h" 
 
 static mk_task* mk_tasks[32] = {0};
 static int mk_tasks_count = 0;

@@ -1,0 +1,6 @@
+# Ignore shell binaries
+shell
+shell.elf
+
+# Ignore compilation products
+**/*.o

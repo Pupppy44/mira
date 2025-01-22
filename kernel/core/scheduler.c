@@ -1,5 +1,5 @@
-#include "../include/scheduler.h"
-#include "../include/util.h"
+#include "../inc/scheduler.h"
+#include "../inc/util.h"
 
 static int mk_scheduler_current_task = -1;
 static mk_syscall_registers mk_scheduler_task_contexts[];  

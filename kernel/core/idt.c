@@ -1,4 +1,4 @@
-#include "../include/idt.h"
+#include "../inc/idt.h"
 
 #define MK_IDT_ENTRIES 256
 mk_idt_entry_t mk_idt[MK_IDT_ENTRIES];
