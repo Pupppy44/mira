@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <stdint.h>
+#include "pit.h"
 
 static inline uint8_t mk_util_inb(uint16_t port) {
     uint8_t ret;

@@ -1,5 +1,6 @@
 #include "../include/pit.h"
 #include "../include/idt.h"
+#include "../include/scheduler.h"
 
 static uint64_t mk_pit_ticks = 0;
 
@@ -39,7 +40,7 @@ void mk_pit_handler() {
 
     mk_pit_ticks++;
 
-    mk_util_print("tick\n");
+    mk_scheduler_step();
 
     mk_idt_post_handler();
 }

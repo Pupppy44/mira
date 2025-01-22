@@ -19,5 +19,5 @@ void* mk_malloc(size_t size) {
 void mk_free(void* ptr) {
     // With a bump allocator, we don't actually free memory
     // This is because we don't track individual allocations
-    // ...for now :)
+    // ...for now.
 }

@@ -8,6 +8,8 @@
         "syscalls.h": "c",
         "stddef.h": "c",
         "pit.h": "c",
-        "mem.h": "c"
+        "mem.h": "c",
+        "scheduler.h": "c",
+        "util.h": "c"
     }
 }

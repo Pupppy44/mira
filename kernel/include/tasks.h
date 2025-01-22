@@ -6,6 +6,7 @@
 // Structure for all Mira tasks
 typedef struct _mk_task {
     int id;
+    const char* name;
     uintptr_t base;
     uintptr_t stack;
     uintptr_t stack_ptr;
