@@ -15,6 +15,7 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size) {
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
     new_task->stack_ptr = new_task->stack + 4096; // Stack start (grows down)
     new_task->status = 0; // Not running
+    new_task->mode = 0; // User mode
     
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed

@@ -5,8 +5,8 @@ typedef long (*mk_syscall_function)(mk_syscall_args);
 
 // Syscall implementations
 void sys_print(mk_syscall_args args) {
-    *(unsigned char*)0xb8000 = (unsigned char)args.arg1; // rdi
-    *(unsigned char*)0xb8001 = (unsigned char)args.arg2; // rsi
+    *(unsigned char*)0xb8000 = 'M'; // rdi
+    *(unsigned char*)0xb8001 = 0x02; // rsi
 }
 
 void sys_vga(mk_syscall_args args) {
@@ -41,7 +41,7 @@ void mk_syscall_handler() {
   
     unsigned long syscall_number = regs.rax;
 
-    if (syscall_number > 0 && syscall_number < sizeof(syscall_table) / sizeof(syscall_table[0]) && syscall_table[syscall_number]) {
+    if (syscall_number > 0) {
         mk_syscall_function func = syscall_table[syscall_number];
 
         // Call the syscall implementation

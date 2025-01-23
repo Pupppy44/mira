@@ -1,27 +1,31 @@
-#include "inc/idt.h"
+#include "inc/mira.h"
+#include <stdint.h>
 
-extern int ms_entry();
+#define VGA_WIDTH  320
+#define VGA_HEIGHT 200
+static volatile uint8_t* vga_buffer = (volatile uint8_t*)0xA0000;
 
-// Mira Kernel Entry
-int mk_entry() {    
-    mk_util_clear_screen();
+int mk_entry() {
+while (1) {
+        for (int y = 0; y < 128; y++) {
+        for (int x = 0; x < 128; x++) {
+            // Bounds check (ensures image stays within VGA buffer)
+            if (x >= VGA_WIDTH || y >= VGA_HEIGHT) {
+                continue;
+            }
+            // Get the color index from the image data array
+            uint8_t color_index = mo[y * 128 + x];
 
-    ms_entry();
+            // flip the byte (for example, white becomes black and vice versa)
+            color_index = ~color_index;
 
-    unsigned char shellcode1[] = { 0xC6, 0x04, 0x25, 0x02, 0x80, 0x0B, 0x00, 0x5A, 0xC6, 0x04, 0x25, 0x03, 0x80, 0x0B, 0x00, 0x05 };
-    unsigned char shellcode2[] = { 0xC6, 0x04, 0x25, 0x04, 0x80, 0x0B, 0x00, 0x45, 0xC6, 0x04, 0x25, 0x05, 0x80, 0x0B, 0x00, 0x04 };
-    unsigned char shellcode3[] = { 0xC6, 0x04, 0x25, 0x06, 0x80, 0x0B, 0x00, 0x51, 0xC6, 0x04, 0x25, 0x07, 0x80, 0x0B, 0x00, 0x03 };
-    unsigned char shellcode4[] = { 0xC6, 0x04, 0x25, 0x08, 0x80, 0x0B, 0x00, 0x5A, 0xC6, 0x04, 0x25, 0x09, 0x80, 0x0B, 0x00, 0x03 };
-
-    mk_create_task(shellcode1, sizeof(shellcode1));
-    mk_create_task(shellcode2, sizeof(shellcode2));
-    mk_create_task(shellcode3, sizeof(shellcode3));
-    mk_create_task(shellcode4, sizeof(shellcode4));
-
-    mk_idt_init();
-    mk_pit_init();
+            // Write the color index to the VGA buffer
+            vga_buffer[y * VGA_WIDTH + x] = color_index;
+        }
+    }
+}
 
     while (1);
 
-    return 0;
+    return 0; // success
 }

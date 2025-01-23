@@ -12,6 +12,11 @@ begin_real:
 
 [bits 16]
 
+; Set graphics mode (13h mode)
+mov ah, 0x00       ; BIOS function: Set Video Mode
+mov al, 0x13       ; Mode 13h (320x200, 256 colors)
+int 0x10           ; BIOS interrupt
+
 ; Initialize the base pointer and the stack pointer
 mov bp, 0x0500
 mov sp, bp

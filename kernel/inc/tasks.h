@@ -11,6 +11,7 @@ typedef struct _mk_task {
     uintptr_t stack;
     uintptr_t stack_ptr;
     int status; // 0 = Not Running, 1 = Running
+    int mode; // 0 = Kernel, 1 = User
 } mk_task;
 
 mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size);
