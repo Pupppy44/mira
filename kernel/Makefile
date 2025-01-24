@@ -14,7 +14,7 @@ SHELL_OBJ = ../shell/shell.o  # Link ms_entry so we can run the shell as a proce
 OBJ = ${ASM_SRC:.asm=.o} ${SRC:.c=.o} 
 
 CCFLAGS = -Iinc -ggdb -c -ffreestanding -target x86_64-none-elf -w
-LDFLAGS = -Ttext 0x8200
+LDFLAGS = -T linker.ld
 LDFLAGS_BIN = ${LDFLAGS} --oformat binary
 ASFLAGS = -f elf64
 

@@ -1,186 +1,89 @@
-/*
- * gfx.c - Example VGA Mode 13h drawing in x64 kernel mode
- *
- * NOTE:
- * 1. This code assumes that the linear memory at 0xA0000 (Mode 13h buffer)
- *    is directly accessible in your kernel environment.
- * 2. In real x64 environments, you must map this region into your page tables,
- *    because 0xA0000 is normally outside standard paging. 
- * 3. All functions here assume an 8-bit 320×200 Mode 13h-style framebuffer.
- * 4. This example uses simplified antialiasing for rounded corners. Real 
- *    anti-aliasing (e.g., Wu's line algorithm) may be more complex.
- */
-
+#include <stdint.h>
 #include "../inc/gfx.h"
 
-/**
- * put_pixel:
- *   Sets an 8-bit pixel at (x, y) to 'color'.
- */
-void put_pixel(int x, int y, uint8_t color) {
-    // Bounds checking
-    if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) {
-        return; // Outside screen, no draw
-    }
-    // Calculate offset and set color
-    vga_buffer[y * VGA_WIDTH + x] = color;
+// Port I/O in 32/64-bit mode (inline assembly)
+static inline void outb(uint16_t port, uint8_t value) {
+    __asm__ volatile ("outb %0, %1" : : "a"(value), "Nd"(port));
 }
 
-/**
- * draw_line:
- *   Draws a line from (x0, y0) to (x1, y1) using a simple Bresenham's algorithm.
- */
-void draw_line(int x0, int y0, int x1, int y1, uint8_t color) {
-    int dx = x1 - x0;
-    int dy = y1 - y0;
+// ─────────────────────────────────────────────────────
+// 1) VGA 13h 256-Color Palette
+//    We provide a typical 256-color palette:
+//    - Indices 0–15 are the EGA defaults
+//    - Indices 16–231 form a 6x6x6 color cube
+//    - Indices 232–255 are grayscale
+// ─────────────────────────────────────────────────────
+uint8_t mk_gfx_colors[256][3] = {
+    // 0–15: EGA palette
+    {0,   0,   0},   {0,   0,   170}, {0,   170, 0},   {0,   170, 170},
+    {170, 0,   0},   {170, 0,   170}, {170, 85,  0},   {170, 170, 170},
+    {85,  85,  85},  {85,  85,  255}, {85,  255, 85},  {85,  255, 255},
+    {255, 85,  85},  {255, 85,  255}, {255, 255, 85},  {255, 255, 255}
+};
 
-    int abs_dx = (dx > 0) ? dx : -dx;
-    int abs_dy = (dy > 0) ? dy : -dy;
-    int sx = (dx > 0) ? 1 : -1;
-    int sy = (dy > 0) ? 1 : -1;
-    int err = abs_dx - abs_dy;
-
-    while (1) {
-        put_pixel(x0, y0, color);
-        if (x0 == x1 && y0 == y1) break;
-        int e2 = 2 * err;
-        if (e2 > -abs_dy) {
-            err -= abs_dy;
-            x0 += sx;
-        }
-        if (e2 < abs_dx) {
-            err += abs_dx;
-            y0 += sy;
-        }
-    }
-}
-
-/**
- * draw_rect:
- *   Draws a rectangle outline at (x, y) with width w and height h.
- */
-void draw_rect(int x, int y, int w, int h, uint8_t color) {
-    // Top edge
-    draw_line(x,        y,        x + w - 1, y,         color);
-    // Bottom edge
-    draw_line(x,        y + h - 1, x + w - 1, y + h - 1, color);
-    // Left edge
-    draw_line(x,        y,        x,         y + h - 1, color);
-    // Right edge
-    draw_line(x + w - 1, y,        x + w - 1, y + h - 1, color);
-}
-
-/**
- * fill_rect:
- *   Fills a rectangle at (x, y) with width w and height h.
- */
-void fill_rect(int x, int y, int w, int h, uint8_t color) {
-    for (int row = 0; row < h; row++) {
-        for (int col = 0; col < w; col++) {
-            put_pixel(x + col, y + row, color);
-        }
-    }
-}
-
-/**
- * draw_rounded_rect:
- *   Draws a rectangle with rounded corners. Uses simplistic "antialiasing"
- *   by drawing semi-transparent edges. In true 8-bit VGA, "semi-transparent"
- *   is approximate (we just use a different color).
- *
- *   corner_radius: radius of the rounded corner
- *   main_color: the main rectangle border color
- *   aa_color: a slightly different color used for "blending"
- */
-void draw_rounded_rect(int x, int y, int w, int h, int corner_radius,
-                       uint8_t main_color, uint8_t aa_color) {
-                        aa_color = main_color;
-    // Draw the regular rectangle minus corners
-    // top edge
-    draw_line(x + corner_radius, y, x + w - corner_radius - 1, y, main_color);
-    // bottom edge
-    draw_line(x + corner_radius, y + h - 1, x + w - corner_radius - 1,
-              y + h - 1, main_color);
-    // left edge
-    draw_line(x, y + corner_radius, x, y + h - 1 - corner_radius, main_color);
-    // right edge
-    draw_line(x + w - 1, y + corner_radius, x + w - 1,
-              y + h - 1 - corner_radius, main_color);
-
-    // Approximate rounded corners with a simple quarter-circle approach
-    int r_sq = corner_radius * corner_radius; // radius squared
-    for (int cy = 0; cy < corner_radius; cy++) {
-        for (int cx = 0; cx < corner_radius; cx++) {
-            int dist_sq = cx * cx + cy * cy;
-            if (dist_sq <= r_sq) {
-                // Top-left corner
-                put_pixel(x + corner_radius - 1 - cx, y + corner_radius - 1 - cy,
-                          main_color);
-                // Top-right corner
-                put_pixel(x + w - corner_radius + cx, y + corner_radius - 1 - cy,
-                          main_color);
-                // Bottom-left corner
-                put_pixel(x + corner_radius - 1 - cx, y + h - corner_radius + cy,
-                          main_color);
-                // Bottom-right corner
-                put_pixel(x + w - corner_radius + cx, y + h - corner_radius + cy,
-                          main_color);
-            } else if (dist_sq <= (r_sq + corner_radius * 2)) {
-                // Example "antialias" region (just use aa_color)
-                put_pixel(x + corner_radius - 1 - cx, y + corner_radius - 1 - cy,
-                          aa_color);
-                put_pixel(x + w - corner_radius + cx, y + corner_radius - 1 - cy,
-                          aa_color);
-                put_pixel(x + corner_radius - 1 - cx, y + h - corner_radius + cy,
-                          aa_color);
-                put_pixel(x + w - corner_radius + cx, y + h - corner_radius + cy,
-                          aa_color);
+// For 16..231: build a 6×6×6 color cube
+// For 232..255: grayscale ramp
+// We'll fill them in a global init function (or here statically).
+// This approach uses 51 = 255/5 increments for a 6×6×6 cube.
+static void mk_init_color_array(void) {
+    int index = 16;
+    for (int r = 0; r < 6; r++) {
+        for (int g = 0; g < 6; g++) {
+            for (int b = 0; b < 6; b++) {
+                mk_gfx_colors[index][0] = (uint8_t)(r * 51);
+                mk_gfx_colors[index][1] = (uint8_t)(g * 51);
+                mk_gfx_colors[index][2] = (uint8_t)(b * 51);
+                index++;
             }
         }
     }
-}
-
-/**
- * draw_bmp:
- *   Draws a raw 8-bit BMP-like image array at (dest_x, dest_y).
- *   'bmp_data' pointer points to the start of the BMP pixels (already uncompressed).
- *   'bmp_width', 'bmp_height' specify the image size in pixels.
- *
- *   Because we are in 8-bit mode, we assume bmp_data is also in the same color
- *   indexing format. Real BMP files have headers/palettes, so you'd parse that 
- *   in practice. This example just copies data directly.
- */
-void draw_bmp(int dest_x, int dest_y,
-              const uint8_t* bmp_data, int bmp_width, int bmp_height) {
-    for (int row = 0; row < bmp_height; row++) {
-        for (int col = 0; col < bmp_width; col++) {
-            uint8_t color = bmp_data[row * bmp_width + col];
-            put_pixel(dest_x + col, dest_y + row, color);
-        }
+    // 232..255: grayscale steps
+    for (int i = 0; i < 24; i++) {
+        uint8_t val = (uint8_t)(i * 11);
+        mk_gfx_colors[232 + i][0] = val;
+        mk_gfx_colors[232 + i][1] = val;
+        mk_gfx_colors[232 + i][2] = val;
     }
 }
 
-/**
- * Example usage in kernel mode (pseudo-code):
- * 
- * void some_kernel_init() {
- *     // Switch to VGA mode 13h if not already done (not shown here).
- *     // Clear screen:
- *     for(int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++) {
- *         vga_buffer[i] = 0; // black
- *     }
- *
- *     // Draw a filled rectangle in color 10 (arbitrary index)
- *     fill_rect(50, 50, 100, 50, 10);
- *
- *     // Draw a red line
- *     draw_line(0, 0, 319, 199, 12);
- *
- *     // Draw a rounded rect with radius=10, main_color=14, aa_color=9
- *     draw_rounded_rect(60, 60, 80, 40, 10, 14, 9);
- *
- *     // Suppose we have a small 8-bit image data array, 16x16
- *     // const uint8_t bmp_data[16 * 16] = { ... };
- *     // draw_bmp(100, 100, bmp_data, 16, 16);
- * }
- */
+// ─────────────────────────────────────────────────────
+// 2) mk_gfx_map_colors
+//    Write our 256 R,G,B values to the VGA DAC using
+//    port 0x3C8 (color index) and 0x3C9 (RGB data).
+// ─────────────────────────────────────────────────────
+void mk_gfx_map_colors(void) {
+    mk_init_color_array();
+
+    // Each color component is 6 bits in standard VGA (0..63),
+    // so we shift from 0..255 down to 0..63 by >> 2.
+    for (int i = 0; i < 256; i++) {
+        outb(0x3C8, i);
+        outb(0x3C9, mk_gfx_colors[i][0] >> 2);
+        outb(0x3C9, mk_gfx_colors[i][1] >> 2);
+        outb(0x3C9, mk_gfx_colors[i][2] >> 2);
+    }
+}
+
+// ─────────────────────────────────────────────────────
+// 3) mk_gfx_draw_bitmap
+//    Draw an indexed-color bitmap in 320×200 Mode 13h
+//    at screen coordinate (x, y).
+// ─────────────────────────────────────────────────────
+void mk_gfx_draw_bitmap(const uint8_t* bitmap, int width, int height, int x, int y) {
+    // Mode 13h: Segment A0000 is 320×200, 1 byte/pixel
+    volatile uint8_t* video = (uint8_t*)0xA0000;
+    int screenWidth = 320; // Mode 13h
+
+    // Loop through each pixel of the bitmap
+    for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+            // Color index in the bitmap
+            uint8_t colorIndex = bitmap[row * width + col];
+            // For mode 13h, the offset in the linear buffer is row * 320 + col
+            int offset = (y + row) * screenWidth + (x + col);
+
+            // If we want to do clipping, we'd check offset or x,y bounds here
+            video[offset] = colorIndex;
+        }
+    }
+}

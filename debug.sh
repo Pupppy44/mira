@@ -2,8 +2,11 @@
 
 echo "Debugging with Qemu..."
 
+
+
 # Drive: Mira image file (mira.img)
 # Audio: DirectSound for Windows to play audio. 
+"/mnt/c/program files/qemu/qemu-system-x86_64.exe" -drive file=./build/mira.img,format=raw
 /mnt/d/x/qemu/qemu-system-x86_64.exe -drive file=./build/mira.img,format=raw -audiodev dsound,id=speaker -machine pcspk-audiodev=speaker
 #keyboard
 #-device usb-kbd
