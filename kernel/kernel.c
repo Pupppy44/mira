@@ -2,12 +2,30 @@
 #include "inc/gfx.h"
 #include <stdint.h>
 
-    volatile uint8_t* video = (uint8_t*)0xA0000;
+#define VGA_WIDTH 320
+#define VGA_HEIGHT 200
+#define VGA_ADDRESS 0xA0000
 
+// Function to set a pixel at (x, y) with a given color index
+void set_pixel(int x, int y, uint8_t color) {
+    if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) {
+        return; // Out of bounds
+    }
+    uint8_t *vga = (uint8_t*)VGA_ADDRESS;
+    vga[y * VGA_WIDTH + x] = color;
+}
+
+void draw_image() {
+    for (int y = 0; y < VGA_HEIGHT; y++) {
+        for (int x = 0; x < VGA_WIDTH; x++) {
+            set_pixel(x, y, image_data[y][x]);
+        }
+    }
+}
 
 int mk_entry() {
-    mk_gfx_map_colors();
-    mk_gfx_draw_bitmap(&mo, 128, 128, 0, 0);
+   // mk_gfx_map_colors();
+    draw_image();
 
     while (1);
 

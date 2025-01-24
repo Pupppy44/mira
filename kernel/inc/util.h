@@ -19,21 +19,4 @@ static inline void mk_util_sleep(uint64_t ms) {
     while (mk_pit_get_tick_count() < start + ms);
 }
 
-static inline void mk_util_print(const char* str) {
-    static uint16_t cursor = 0;
-    static uint16_t* video_memory = (uint16_t*)0xb8000;
-
-    for (size_t i = 0; str[i] != '\0'; i++) {
-        video_memory[cursor] = (video_memory[cursor] & 0xFF00) | str[i];
-        cursor++;
-    }
-}
-
-static inline void mk_util_clear_screen() {
-    static uint16_t* video_memory = (uint16_t*)0xb8000;
-    for (size_t i = 0; i < 80 * 25; i++) {
-        video_memory[i] = (video_memory[i] & 0xFF00) | ' ';
-    }
-}
-
 #endif
