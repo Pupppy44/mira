@@ -13,6 +13,9 @@
         "util.h": "c",
         "cstdlib": "c",
         "mira.h": "c",
-        "gfx.h": "c"
+        "gfx.h": "c",
+        "happy.h": "c",
+        "alarm02.h": "c",
+        "theme.h": "c"
     }
 }
