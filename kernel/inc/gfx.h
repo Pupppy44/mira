@@ -3,16 +3,25 @@
 
 #include <stdint.h>
 
-// A 256-element array of 3-byte colors (R, G, B).
-extern uint8_t mk_gfx_colors[256][3];
+#define MK_GFX_VGA_WIDTH 320
+#define MK_GFX_VGA_HEIGHT 200
+#define MK_GFX_VGA_ADDRESS 0xA0000
 
-// Initializes the VGA 13h 256-color palette via outb().
-void mk_gfx_map_colors(void);
+// Mira Kernel GFX Dimensions
+typedef struct {
+    int x;
+    int y;
+    int width;
+    int height;
+} mk_gfx_dimensions_t;
 
-// Draws a bitmap (indexed-color array) at position (x, y) in 320×200 Mode 13h.
-//   - bitmap: pointer to the array of color indices
-//   - width, height: dimensions of the bitmap
-//   - x, y: on-screen location (top-left corner)
-void mk_gfx_draw_bitmap(const uint8_t* bitmap, int width, int height, int x, int y);
+// Mira Kernel GFX Clear Screen
+void mk_gfx_clear_screen(uint8_t color);
 
-#endif // GFX_H
+// Mira Kernel GFX Set Pixel
+void mk_gfx_set_pixel(int x, int y, uint8_t color);
+
+// Mira Kernel GFX Set Pixels
+void mk_gfx_set_pixels(uint8_t *pixels, mk_gfx_dimensions_t *dimensions);
+
+#endif

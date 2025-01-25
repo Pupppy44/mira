@@ -12,6 +12,7 @@
         "scheduler.h": "c",
         "util.h": "c",
         "cstdlib": "c",
-        "mira.h": "c"
+        "mira.h": "c",
+        "gfx.h": "c"
     }
 }

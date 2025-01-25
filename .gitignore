@@ -1,2 +1,6 @@
-# Ignore generated binary file
-build/mira.img
+# Ignore build output
+build/
+
+# Ignore editor generated files
+.vscode/
+.vs/

@@ -1,10 +1,13 @@
-import numpy as np
-from PIL import Image
+# mira/tools/bmp_to_array.py
+# ? Converts BMP files to 256-color indexed C arrays for Mira
 
 from PIL import Image
 import numpy as np
+import glob
+import os
+import threading
 
-# Define the palette as an array of RGB tuples
+# VGA 256 color palette
 palette = [
     (0x00, 0x00, 0x00), (0x00, 0x00, 0xAA), (0x00, 0xAA, 0x00), (0x00, 0xAA, 0xAA),
     (0xAA, 0x00, 0x00), (0xAA, 0x00, 0xAA), (0xAA, 0x55, 0x00), (0xAA, 0xAA, 0xAA),
@@ -77,8 +80,10 @@ def find_matching_palette_color(pixel):
     for i, (pr, pg, pb) in enumerate(palette):
         if r == pr and g == pg and b == pb:
             return i
+    # Estimate closest color if no exact match
     return find_closest_palette_color(pixel)
 
+# If we can't find an exact match, find the closest color in the palette
 def find_closest_palette_color(pixel):
     r, g, b = pixel
     min_dist = float('inf')
@@ -106,13 +111,36 @@ def bmp_to_c_array(image_path):
 
     return c_array
 
-def print_c_array(c_array):
-    print("uint8_t image_data[size] = {")
-    for row in c_array:
-        print("    " + ", ".join([str(x) for x in row]) + ",")
-    print("};")
+def save_c_array_to_file(c_array, file_path):
+    array_name = os.path.splitext(os.path.basename(file_path))[0]
+    with open(file_path, 'w') as f:
+        f.write("#include <stdint.h>\n\n")
+        f.write("#define " + array_name.upper() + "_WIDTH " + str(len(c_array[0])) + "\n")
+        f.write("#define " + array_name.upper() + "_HEIGHT " + str(len(c_array)) + "\n\n")
+        f.write("uint8_t " + array_name + "[] = {")
+        for row in c_array:
+            for index in row:
+                f.write(f"{index}, ")
+        f.write("};")
+    
+    print(f"Saved {file_path}")
 
 if __name__ == "__main__":
-    image_path = 'mira.bmp'
-    c_array = bmp_to_c_array(image_path)
-    print_c_array(c_array)
+    bmp_files = glob.glob('../assets/*.bmp')
+    print("# of bmp files found:", len(bmp_files))
+    print("Now converting to C arrays...")
+
+    def process_bmp_file(bmp_file):
+        c_array = bmp_to_c_array(bmp_file)
+        header_file = os.path.splitext(bmp_file)[0] + '.h'
+        save_c_array_to_file(c_array, header_file)
+
+    # Use threading to speed up the process for multiple files
+    threads = []
+    for bmp_file in bmp_files:
+        thread = threading.Thread(target=process_bmp_file, args=(bmp_file,))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
