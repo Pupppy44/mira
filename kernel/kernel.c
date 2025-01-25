@@ -8,23 +8,21 @@
 
 // Function to set a pixel at (x, y) with a given color index
 void set_pixel(int x, int y, uint8_t color) {
-    if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) {
-        return; // Out of bounds
-    }
     uint8_t *vga = (uint8_t*)VGA_ADDRESS;
     vga[y * VGA_WIDTH + x] = color;
 }
 
 void draw_image() {
-    for (int y = 0; y < VGA_HEIGHT; y++) {
-        for (int x = 0; x < VGA_WIDTH; x++) {
-            set_pixel(x, y, image_data[y][x]);
+    for (int y = 0; y < 128; y++) {
+        for (int x = 0; x < 128; x++) {
+            set_pixel(x, y, image_data[y * 128 + x]);
         }
     }
 }
 
 int mk_entry() {
-   // mk_gfx_map_colors();
+    // set_pixel(0, 0, 1);
+    // while (1);
     draw_image();
 
     while (1);

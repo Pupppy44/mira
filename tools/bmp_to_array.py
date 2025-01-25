@@ -72,6 +72,13 @@ palette = [
     (0x00, 0x00, 0x00), (0x00, 0x00, 0x00), (0x00, 0x00, 0x00), (0x00, 0x00, 0x00)
 ]
 
+def find_matching_palette_color(pixel):
+    r, g, b = pixel
+    for i, (pr, pg, pb) in enumerate(palette):
+        if r == pr and g == pg and b == pb:
+            return i
+    return find_closest_palette_color(pixel)
+
 def find_closest_palette_color(pixel):
     r, g, b = pixel
     min_dist = float('inf')
@@ -84,7 +91,7 @@ def find_closest_palette_color(pixel):
     return closest_index
 
 def bmp_to_c_array(image_path):
-    img = Image.open(image_path).convert('RGB')
+    img = Image.open(image_path).convert('RGB', palette=Image.ADAPTIVE, colors=256)
     pixels = np.array(img)
     height, width, _ = pixels.shape
     c_array = []
@@ -93,16 +100,16 @@ def bmp_to_c_array(image_path):
         row = []
         for x in range(width):
             pixel = pixels[y, x]
-            index = find_closest_palette_color(pixel)
+            index = find_matching_palette_color(pixel)
             row.append(index)
         c_array.append(row)
 
     return c_array
 
 def print_c_array(c_array):
-    print("uint8_t image_data[HEIGHT][WIDTH] = {")
+    print("uint8_t image_data[size] = {")
     for row in c_array:
-        print("    {", ", ".join(map(str, row)), "},")
+        print("    " + ", ".join([str(x) for x in row]) + ",")
     print("};")
 
 if __name__ == "__main__":

@@ -73,9 +73,11 @@ uint8_t mk_gfx_colors[256][3] = {
 
 // Mira Kernel GFX Map VGA Colors
 void mk_gfx_map_colors(void) {
+            mk_util_outb(0x3C8, 0);
+
+
     // Map each individual color
     for (int i = 0; i < 256; i++) {
-        mk_util_outb(0x3C8, i);
         mk_util_outb(0x3C9, mk_gfx_colors[i][0] >> 2);
         mk_util_outb(0x3C9, mk_gfx_colors[i][1] >> 2);
         mk_util_outb(0x3C9, mk_gfx_colors[i][2] >> 2);
