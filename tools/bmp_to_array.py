@@ -117,7 +117,7 @@ def save_c_array_to_file(c_array, file_path):
         f.write("#include <stdint.h>\n\n")
         f.write("#define " + array_name.upper() + "_WIDTH " + str(len(c_array[0])) + "\n")
         f.write("#define " + array_name.upper() + "_HEIGHT " + str(len(c_array)) + "\n\n")
-        f.write("uint8_t " + array_name + "[] = {")
+        f.write("static uint8_t " + array_name + "[] = {")
         for row in c_array:
             for index in row:
                 f.write(f"{index}, ")

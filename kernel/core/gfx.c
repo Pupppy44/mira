@@ -11,7 +11,7 @@ void mk_gfx_clear_screen(uint8_t color) {
 
 void mk_gfx_set_pixel(int x, int y, uint8_t color) {
     uint8_t *vga = (uint8_t*)MK_GFX_VGA_ADDRESS;
-    vga[y * MK_GFX_VGA_WIDTH + x] = color;
+    vga[0] = color;
 }
 
 void mk_gfx_set_pixels(uint8_t *pixels, mk_gfx_dimensions_t *dimensions) {
