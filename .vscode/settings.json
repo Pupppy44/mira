@@ -10,6 +10,7 @@
         "pit.h": "c",
         "mem.h": "c",
         "scheduler.h": "c",
-        "util.h": "c"
+        "util.h": "c",
+        "keyboard.h": "c"
     }
 }
