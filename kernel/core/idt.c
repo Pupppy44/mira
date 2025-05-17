@@ -27,7 +27,10 @@ void mk_idt_load(mk_idt_ptr_t *idt_ptr) {
 // Mira IDT Pre Handler - Acknowledges the interrupt and reenables interrupts
 // Without doing this early, the PIT and other interrupts will be missed or delayed
 void mk_idt_pre_handler() {
+    // Acknowledge the interrupt
     mk_util_outb(0x20, 0x20);
+
+    // Now we can reenable interrupts
     __asm__ volatile ("sti");
 }
 

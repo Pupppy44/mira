@@ -2,7 +2,7 @@
 #include "../inc/util.h"
 
 static int mk_scheduler_current_task = -1;
-static mk_syscall_registers mk_scheduler_task_contexts[];  
+static mk_syscall_registers mk_scheduler_task_contexts[32]; // Assuming a max of 32 tasks
 
 // Mira Kernel Scheduler Get Next Task
 int mk_scheduler_get_next_task() {
@@ -49,7 +49,9 @@ void mk_scheduler_step() {
     mk_scheduler_current_task = next;
 
     // 4. Switch to the next task
-    // Use IRET-based approach in real code or ring transitions. Here, a simplified ring-0 example:
+    // Use IRET-based approach in real code or ring transitions.
+    // This is a simple example of jumping to the next task's code.
+    // TODO: User mode tasks should use a different method to switch.
     __asm__ volatile (
         "movq %0, %%rsp\n\t"   // Load next task RSP
         // The simplest approach is a "jmp" to the code, but if the code has jmp $,

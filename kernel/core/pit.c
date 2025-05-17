@@ -36,6 +36,13 @@ void mk_pit_init() {
 
 // Mira Kernel PIT Handler
 void mk_pit_handler() {
+    // Save the registers
+    // We need to do this outside of the handler because it crashes the system
+    __asm__ volatile (
+        "push %rax; push %rbx; push %rcx; push %rdx; push %rsi; push %rdi; push %rbp;"
+        "push %r8;  push %r9;  push %r10; push %r11; push %r12; push %r13; push %r14; push %r15;"
+    );
+
     mk_idt_pre_handler();
 
     mk_pit_ticks++;
