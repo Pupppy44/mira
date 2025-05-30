@@ -25,6 +25,9 @@ mk_syscall_function syscall_table[] = {
 
 // Mira Kernel Syscall Handler
 void mk_syscall_handler() {
+    *(unsigned char*)0xb8010 = 'S'; // Set default letter for output
+    *(unsigned char*)0xb8011 = 0x05; // Set default color for output
+
     mk_syscall_registers regs;
 
     // Grab the registers to use

@@ -10,7 +10,10 @@ typedef struct _mk_task {
     uintptr_t base;
     uintptr_t stack;
     uintptr_t stack_ptr;
+    uintptr_t user_stack_base; // For user mode tasks
+    uintptr_t user_stack_ptr; // For user mode tasks
     int status; // 0 = Not Running, 1 = Running
+    int mode; // 0 = Kernel, 1 = User
 } mk_task;
 
 mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size, const char* name);

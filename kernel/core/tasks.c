@@ -10,12 +10,18 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size, const c
         return NULL; // Allocation failed
     }
 
+    // Build the task structure
     new_task->id = mk_tasks_count++;
     new_task->name = name;
     new_task->base = (uintptr_t)mk_malloc(shellcode_size);
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
     new_task->stack_ptr = new_task->stack + 4096; // Stack start (grows down)
     new_task->status = 0; // Not running
+    new_task->mode = 1; // Default to user mode
+
+    // Allocate user stack for user mode tasks
+    new_task->user_stack_base = (uintptr_t)mk_malloc(4096); // Allocate user stack
+    new_task->user_stack_ptr = new_task->user_stack_base + 4096; // User stack start (grows down)
     
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed
@@ -39,12 +45,18 @@ mk_task* mk_create_task_from_function(int (*entry_point)(void), const char* name
         return NULL; // Allocation failed
     }
 
+    // Build the task structure
     new_task->id = mk_tasks_count++;
     new_task->name = name;
     new_task->base = (uintptr_t)entry_point; // Directly use the function's address
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
     new_task->stack_ptr = new_task->stack + 4096; // Stack start (grows down)
     new_task->status = 0; // Not running
+    new_task->mode = 1; // Default to user mode
+
+    // Allocate user stack for user mode tasks
+    new_task->user_stack_base = (uintptr_t)mk_malloc(4096); // Allocate user stack
+    new_task->user_stack_ptr = new_task->user_stack_base + 4096; // User stack start (grows down)
 
     if (!new_task->base || !new_task->stack) {
         return NULL; // Allocation failed

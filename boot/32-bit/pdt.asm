@@ -1,44 +1,51 @@
 [bits 32]
 
-; Initialize the page table
+; Initialize the page table that identity‑maps the first 2 MiB
+; and is accessible from ring 3 (for user mode tasks).
+
 init_pt_protected:
     pushad
 
-    ; Clear the memory area using rep stosd
-    mov edi, 0x1000
-    mov cr3, edi
-    xor eax, eax
-    mov ecx, 4096 
-    rep stosd
+    ; ------------------------------------------------------------------
+    ; 1. Clear 16 KiB starting at 0x1000 and point CR3 at it (PML4)
+    ; ------------------------------------------------------------------
+    mov     edi, 0x1000          ; PML4 base
+    mov     cr3, edi
+    xor     eax, eax
+    mov     ecx, 4096            ; 4096 dwords = 16 KiB
+    rep     stosd
 
-    ; Set edi back to PML4T[0]
-    mov edi, cr3
+    ; ------------------------------------------------------------------
+    ; 2. Build the hierarchy
+    ;    We need U/S=1 on every level we want ring‑3 to traverse.
+    ;    Flags = P | RW | US  ->  0x7
+    ; ------------------------------------------------------------------
+    mov     edi, cr3             ; PML4[0]
+    mov     dword [edi], 0x2007  ; -> PDPT @ 0x2000, flags 0x7
+    add     edi, 0x1000          ; PDPT[0]
+    mov     dword [edi], 0x3007  ; -> PDT  @ 0x3000, flags 0x7
+    add     edi, 0x1000          ; PDT[0]
+    mov     dword [edi], 0x4007  ; -> PT   @ 0x4000, flags 0x7
 
-    ; Set up the first entry of each table
-    mov dword[edi], 0x2003      ; Set PML4T[0] to address 0x2000 (PDPT) with flags 0x0003
-    add edi, 0x1000             ; Go to PDPT[0]
-    mov dword[edi], 0x3003      ; Set PDPT[0] to address 0x3000 (PDT) with flags 0x0003
-    add edi, 0x1000             ; Go to PDT[0]
-    mov dword[edi], 0x4003      ; Set PDT[0] to address 0x4000 (PT) with flags 0x0003
+    ; ------------------------------------------------------------------
+    ; 3. Fill PT with 512 4 KiB user pages covering 0‑2 MiB
+    ; ------------------------------------------------------------------
+    add     edi, 0x1000          ; PT base
+    mov     ebx, 0x00000007      ; phys=0x0000 | P|RW|US
+    mov     ecx, 512
+.add_page:
+    mov     dword [edi], ebx
+    add     ebx, 0x1000          ; next 4 KiB
+    add     edi, 8               ; 64‑bit entry stride
+    loop    .add_page
 
-    ; Fill in the final page table
-    ; NOTE: edi is at 0x3000
-    add edi, 0x1000             ; Go to PT[0]
-    mov ebx, 0x00000003         ; EBX has address 0x0000 with flags 0x0003
-    mov ecx, 512               ; 512 entries in the page table
+    ; ------------------------------------------------------------------
+    ; 4. Turn PAE on (bit 5 of CR4) – 64‑bit long mode needs it.
+    ; ------------------------------------------------------------------
+    mov     eax, cr4
+    or      eax, 1 << 5
+    mov     cr4, eax
 
-    add_page_entry_protected:
-        mov dword[edi], ebx
-        add ebx, 0x1000
-        add edi, 8
-        loop add_page_entry_protected
-
-    ; Set up PAE paging, but don't enable it quite yet
-    mov eax, cr4
-    or eax, 1 << 5               ; Set the PAE-bit, which is the 5th bit
-    mov cr4, eax
-
-    ; Now we should have a page table that identities maps the lowest 2MB of physical memory into
-    ; virtual memory!
+    ; All set – higher layers enable long mode & paging later.
     popad
     ret
