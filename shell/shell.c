@@ -7,4 +7,10 @@ void ms_entry() {
         "mov   $0x07, %rsi   \n\t"  // color byte
         "int   $0x80         \n\t"  // call into mk_syscall_handler
     );
+
+    for (;;) {
+        asm volatile (
+            "hlt"  // Halt the CPU until the next interrupt
+        );
+    }
 }

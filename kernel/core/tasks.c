@@ -1,6 +1,6 @@
 #include "../inc/tasks.h" 
 
-static mk_task* mk_tasks[32] = {0};
+static mk_task* mk_tasks[MK_TASKS_MAX] = {0};
 static int mk_tasks_count = 0;
 
 mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size, const char* name) {
@@ -16,9 +16,9 @@ mk_task* mk_create_task(unsigned char* shellcode, size_t shellcode_size, const c
     new_task->base = (uintptr_t)mk_malloc(shellcode_size);
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
     new_task->stack_ptr = new_task->stack + 4096; // Stack start (grows down)
-    new_task->status = 0; // Not running
-    new_task->mode = 1; // Default to user mode
-
+    new_task->status = MK_TASKS_NOT_RUNNING; // Not running
+    new_task->mode = MK_TASKS_USER_MODE; // Default to user mode
+    
     // Allocate user stack for user mode tasks
     new_task->user_stack_base = (uintptr_t)mk_malloc(4096); // Allocate user stack
     new_task->user_stack_ptr = new_task->user_stack_base + 4096; // User stack start (grows down)
@@ -51,8 +51,8 @@ mk_task* mk_create_task_from_function(int (*entry_point)(void), const char* name
     new_task->base = (uintptr_t)entry_point; // Directly use the function's address
     new_task->stack = (uintptr_t)mk_malloc(4096); // 4KB stack
     new_task->stack_ptr = new_task->stack + 4096; // Stack start (grows down)
-    new_task->status = 0; // Not running
-    new_task->mode = 1; // Default to user mode
+    new_task->status = MK_TASKS_NOT_RUNNING;
+    new_task->mode = MK_TASKS_USER_MODE;
 
     // Allocate user stack for user mode tasks
     new_task->user_stack_base = (uintptr_t)mk_malloc(4096); // Allocate user stack
@@ -69,7 +69,7 @@ mk_task* mk_create_task_from_function(int (*entry_point)(void), const char* name
 void mk_execute_task(mk_task* task) {
     if (task && task->base) {
         // By setting the status as running, the PIT scheduler will pick it up
-        task->status = 1;
+        task->status = MK_TASKS_RUNNING;
     }
 }
 

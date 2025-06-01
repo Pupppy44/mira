@@ -11,4 +11,6 @@ void* mk_malloc(size_t size);
 
 void mk_free(void* ptr);
 
+void* mk_memset(void* ptr, int value, size_t num);
+
 #endif

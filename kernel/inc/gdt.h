@@ -63,4 +63,7 @@ typedef struct __attribute__((packed)) {
 // Mira Kernel GDT Initialization
 void mk_gdt_init(void);
 
+// Mira TSS structure
+extern mk_tss_t mk_tss;
+
 #endif // MK_GDT_H

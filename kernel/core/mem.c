@@ -21,3 +21,12 @@ void mk_free(void* ptr) {
     // This is because we don't track individual allocations
     // ...for now.
 }
+
+// Mira Kernel Memory Set
+void* mk_memset(void* ptr, int value, size_t num) {
+    unsigned char* p = (unsigned char*)ptr;
+    for (size_t i = 0; i < num; i++) {
+        p[i] = (unsigned char)value;
+    }
+    return ptr;
+}

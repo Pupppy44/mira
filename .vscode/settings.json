@@ -11,6 +11,7 @@
         "mem.h": "c",
         "scheduler.h": "c",
         "util.h": "c",
-        "keyboard.h": "c"
+        "keyboard.h": "c",
+        "gdt.h": "c"
     }
 }

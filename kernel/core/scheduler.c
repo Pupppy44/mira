@@ -1,14 +1,9 @@
 #include "../inc/scheduler.h"
 #include "../inc/util.h"
-#include "../inc/keyboard.h"
-
-#define KERNEL_MODE        0
-#define USER_MODE          1
-#define USER_CODE_SELECTOR 0x1B
-#define USER_DATA_SELECTOR 0x23
+#include "../inc/gdt.h"
 
 static int mk_scheduler_current_task = -1;
-static mk_syscall_registers mk_scheduler_task_contexts[32]; // Assuming a max of 32 tasks
+static mk_syscall_registers mk_scheduler_task_contexts[MK_TASKS_MAX]; // Array to hold task contexts
 
 // Mira Kernel Scheduler Get Next Task
 int mk_scheduler_get_next_task() {
@@ -43,16 +38,16 @@ void mk_scheduler_step() {
     uintptr_t new_rsp = mk_scheduler_task_contexts[next].rsp;
 
     // If the new task is just starting, initialize its stack/frame
+    // User mode tasks need a specific stack setup
     mk_task** all_tasks = mk_get_tasks();
     mk_task* next_task = all_tasks[next];
-    
     if (new_rsp == 0) {
-        if (next_task->mode == USER_MODE) {
+        if (next_task->mode == MK_TASKS_USER_MODE) {
             uintptr_t kernel_top = next_task->stack_ptr;
             uint64_t *stack = (uint64_t*)kernel_top;
 
             // (a) push SS
-            *--stack = USER_DATA_SELECTOR;
+            *--stack = MK_USER_DATA_SELECTOR;
 
             // (b) push RSP (user stack pointer)
             *--stack = (uint64_t)next_task->user_stack_ptr;
@@ -61,7 +56,7 @@ void mk_scheduler_step() {
             *--stack = 0x202;
 
             // (d) push CS
-            *--stack = USER_CODE_SELECTOR;
+            *--stack = MK_USER_CODE_SELECTOR;
 
             // (e) push RIP
             *--stack = (uint64_t)next_task->base;
@@ -78,19 +73,24 @@ void mk_scheduler_step() {
     // Update current task index for the next interrupt
     mk_scheduler_current_task = next;
 
-    // 4. Switch to the next task
-    if (next_task->mode == KERNEL_MODE) {
+    // Install the next task’s kernel stack in the TSS 
+    // This is necessary for ring transitions
+    extern mk_tss_t mk_tss;
+    mk_tss.rsp0 = (uint64_t)next_task->stack_ptr;
+
+    // 5. Load the task’s RSP and jump/iretq
+    if (next_task->mode == MK_TASKS_KERNEL_MODE) {
         __asm__ volatile (
-            "movq %0, %%rsp\n\t"   // Load next task's kernel RSP
-            "jmp *%1\n\t"          // Jump to the kernel task's entry point
+            "movq %0, %%rsp\n\t"
+            "jmp  *%1\n\t"
             :
             : "r"(new_rsp), "r"(next_task->base)
             : "memory"
         );
     } else {
         __asm__ volatile (
-            "movq %0, %%rsp\n\t"   // Load next task's kernel RSP
-            "iretq\n\t"            // Switch to user mode
+            "movq %0, %%rsp\n\t"
+            "iretq\n\t"
             :
             : "r"(new_rsp)
             : "memory"
