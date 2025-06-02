@@ -12,6 +12,8 @@
         "scheduler.h": "c",
         "util.h": "c",
         "keyboard.h": "c",
-        "gdt.h": "c"
+        "gdt.h": "c",
+        "random": "c",
+        "string.h": "c"
     }
 }

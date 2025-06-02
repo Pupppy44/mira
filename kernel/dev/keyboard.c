@@ -48,9 +48,9 @@ void mk_keyboard_init() {
 // Maps scancodes to key names for the standard US keyboard layout.
 static const char* mk_kbd_scancode_set1_map[0x59] = {
     /* 0x00 */ NULL, "ESC", "1", "2", "3", "4", "5", "6",
-    /* 0x08 */ "7", "8", "9", "0", "-", "=", "BACKSPACE", "TAB",
+    /* 0x08 */ "7", "8", "9", "0", "-", "=", "\b", "TAB",
     /* 0x10 */ "Q", "W", "E", "R", "T", "Y", "U", "I",
-    /* 0x18 */ "O", "P", "[", "]", "ENTER", "LCTRL", "A", "S",
+    /* 0x18 */ "O", "P", "[", "]", "\n", "LCTRL", "A", "S",
     /* 0x20 */ "D", "F", "G", "H", "J", "K", "L", ";",
     /* 0x28 */ "'", "`", "LSHIFT", "\\", "Z", "X", "C", "V",
     /* 0x30 */ "B", "N", "M", ",", ".", "/", "RSHIFT", "KP*",
@@ -64,6 +64,8 @@ static const char* mk_kbd_scancode_set1_map[0x59] = {
 // Mira Kernel Keyboard Extended Code Active
 // State variable for handling E0 prefixed scancodes.
 static uint8_t mk_kbd_extended_code_active = 0;
+
+static const char* last_key_name = NULL; // Last key name to avoid duplicate processing
 
 // Mira Kernel Keyboard Get Key
 // Polls the keyboard controller for a scancode and attempts to map it.
@@ -98,7 +100,7 @@ const char* mk_keyboard_get_key() {
                     case 0x5C: key_name = "RGUI"; break;
                     case 0x5D: key_name = "APPS"; break;
                     case 0x35: key_name = "KP/"; break;
-                    case 0x1C: key_name = "KP_ENTER"; break;
+                    case 0x1C: key_name = "\n"; break; // Enter key (right side)
                     // TODO: Add more extended keys
                 }
             }

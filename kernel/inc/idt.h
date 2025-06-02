@@ -27,9 +27,6 @@ typedef struct {
     uint64_t base;
 } __attribute__((packed)) mk_idt_ptr_t;
 
-// Function to prepare an interrupt
-void mk_idt_pre_handler();
-
 // Function to finish an interrupt
 void mk_idt_post_handler();
 

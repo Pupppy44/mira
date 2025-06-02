@@ -24,19 +24,12 @@ void mk_idt_load(mk_idt_ptr_t *idt_ptr) {
     );
 }
 
-// Mira IDT Pre Handler - Acknowledges the interrupt and reenables interrupts
-// Without doing this early, the PIT and other interrupts will be missed or delayed
-void mk_idt_pre_handler() {
-    // Acknowledge the interrupt
-    mk_util_outb(0x20, 0x20);
-
-    // Now we can reenable interrupts
-    __asm__ volatile ("sti");
-}
-
 // Mira IDT Post Handler - Restores registers and returns to the caller
 // Without this final step, the system will subsequently crash
 void mk_idt_post_handler() {
+    // Acknowledge the interrupt
+    mk_util_outb(0x20, 0x20);
+
     __asm__ volatile (
         "pop %r15\n"
         "pop %r14\n"
@@ -53,13 +46,18 @@ void mk_idt_post_handler() {
         "pop %rcx\n"
         "pop %rbx\n"
         "pop %rax\n"
+
+        // Re-enable interrupts
+        "sti\n"
+
+        // Return from the interrupt
         "iretq"
     );
 }
 
 // Mira Kernel IDT Default Handler
 void mk_idt_default_handler(void) {
-    mk_idt_pre_handler();
+    // Simply acknowledge the interrupt and return
     mk_idt_post_handler();
 }
 

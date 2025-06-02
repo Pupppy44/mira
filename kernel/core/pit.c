@@ -36,12 +36,14 @@ void mk_pit_init() {
 
 // Mira Kernel PIT Handler
 void mk_pit_handler() {
-    mk_idt_pre_handler();
-
+    // Variable used for timing functions (e.g., sleep)
+    // Ideally, the PIT should tick at one millisecond intervals
     mk_pit_ticks++;
 
+    // Step the round-robin scheduler to run and switch tasks
     mk_scheduler_step();
 
+    // Call the post handler to restore registers and return
     mk_idt_post_handler();
 }
 

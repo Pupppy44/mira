@@ -1,8 +1,9 @@
 #include "../inc/syscalls.h"
+#include "../inc/keyboard.h"
 #include "../inc/util.h"
 
 // Mira System Call Print Function
-static long mk_syscall_print(mk_syscall_args *args) {
+long mk_syscall_print(mk_syscall_args *args) {
     const char* string = (const char*)args->arg1;
     
     mk_util_print(string);
@@ -10,11 +11,25 @@ static long mk_syscall_print(mk_syscall_args *args) {
     return 0;
 }
 
+// Mira System Call Get Key Function
+long mk_syscall_get_key(mk_syscall_args *args) {
+    // Note that the function is non-blocking and
+    // will return immediately if no key is pressed.
+    const char* key = mk_keyboard_get_key();
+
+    if (!key) {
+        return (long)(uint8_t)'\0'; // No key pressed, return null character
+    }
+
+    return (long)(uint8_t)key[0]; // Return the first character of the key name
+}
+
 // Mira System Call Function Definition & Table
 typedef long (*mk_syscall_func)(mk_syscall_args *);
-static mk_syscall_func const syscall_table[] = {
+const mk_syscall_func syscall_table[] = {
     NULL, // Unused
-    mk_syscall_print // Print to VGA text buffer
+    mk_syscall_print, // Print to VGA text buffer
+    mk_syscall_get_key // Get key from keyboard
 };
 
 // Mira System Call Dispatcher
