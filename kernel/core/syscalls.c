@@ -1,72 +1,71 @@
 #include "../inc/syscalls.h"
+#include "../inc/util.h"
 
-// Syscall table
-typedef long (*mk_syscall_function)(mk_syscall_args);
-
-// Syscall implementations
-void sys_print(mk_syscall_args args) {
-    *(unsigned char*)0xb8000 = (unsigned char)args.arg1; // rdi
-    *(unsigned char*)0xb8001 = (unsigned char)args.arg2; // rsi
-}
-
-void sys_vga(mk_syscall_args args) {
-    unsigned char* vga = (unsigned char*)0xA0000;
-    unsigned char color = (unsigned char)args.arg1; // rdi
-    unsigned char pixel = (unsigned char)args.arg2; // rsi
+// Mira System Call Print Function
+static long mk_syscall_print(mk_syscall_args *args) {
+    const char* string = (const char*)args->arg1;
     
-    vga[pixel] = color;
+    mk_util_print(string);
+
+    return 0;
 }
 
-mk_syscall_function syscall_table[] = {
-    NULL,
-    (mk_syscall_function)sys_print,
-    (mk_syscall_function)sys_vga
+// Mira System Call Function Definition & Table
+typedef long (*mk_syscall_func)(mk_syscall_args *);
+static mk_syscall_func const syscall_table[] = {
+    NULL, // Unused
+    mk_syscall_print // Print to VGA text buffer
 };
 
-// Mira Kernel Syscall Handler
-void mk_syscall_handler() {
-    *(unsigned char*)0xb8010 = 'S'; // Set default letter for output
-    *(unsigned char*)0xb8011 = 0x05; // Set default color for output
+// Mira System Call Dispatcher
+// This function handles the logic for calling the appropriate syscall function
+long mk_syscall_dispatch(uint64_t syscall_number, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5) {
+    long result = -1; // Default to -1 (invalid syscall or not implemented)
 
-    mk_syscall_registers regs;
-
-    // Grab the registers to use
-    __asm__ volatile(
-        "mov %%rax, %0\n"
-        "mov %%rdi, %1\n"
-        "mov %%rsi, %2\n"
-        "mov %%rdx, %3\n"
-        "mov %%r10, %4\n"
-        "mov %%r8, %5\n"
-        "mov %%r9, %6\n"
-        : "=r"(regs.rax), "=r"(regs.rdi), "=r"(regs.rsi), "=r"(regs.rdx), "=r"(regs.r10), "=r"(regs.r8), "=r"(regs.r9)
-    );
-  
-    unsigned long syscall_number = regs.rax;
-
-    if (syscall_number > 0 && syscall_number < sizeof(syscall_table) / sizeof(syscall_table[0]) && syscall_table[syscall_number]) {
-        mk_syscall_function func = syscall_table[syscall_number];
-
-        // Call the syscall implementation
-        long result = func((mk_syscall_args){ regs.rdi, regs.rsi, regs.rdx, regs.r10, regs.r8, regs.r9 });
-
-        // Set the return value in rax
-        regs.rax = result;
+    if (syscall_number < (sizeof syscall_table / sizeof syscall_table[0]) && syscall_table[syscall_number]) {
+        mk_syscall_args args = { a1, a2, a3, a4, a5, 0 };
+        result = syscall_table[syscall_number](&args);
     }
 
-    // Restore the registers
-    __asm__ volatile(
-        "mov %0, %%rax\n"
-        "mov %1, %%rdi\n"
-        "mov %2, %%rsi\n"
-        "mov %3, %%rdx\n"
-        "mov %4, %%r10\n"
-        "mov %5, %%r8\n"
-        "mov %6, %%r9\n"
-        :
-        : "r"(regs.rax), "r"(regs.rdi), "r"(regs.rsi), "r"(regs.rdx), "r"(regs.r10), "r"(regs.r8), "r"(regs.r9)
-    );
+    return result;
+}
 
-    // Return from the interrupt
-    __asm__ volatile("iretq");
+// Mira System Call Handler
+// This function is purely assembly because it needs to preserve
+// registers and handle the syscall interrupt properly.
+__attribute__((naked)) void mk_syscall_handler(void) {
+    __asm__ __volatile__(
+        // Save all registers except RAX (return value)
+        "pushq %rax\n\t"
+        "pushq %rbx\n\t"
+        "pushq %rcx\n\t"
+        "pushq %rdx\n\t"
+        "pushq %rsi\n\t"
+        "pushq %rdi\n\t"
+        "pushq %r8\n\t"
+        "pushq %r9\n\t"
+        "pushq %r10\n\t"
+
+        "mov 64(%rsp), %rdi\n\t" 
+        "mov 24(%rsp), %rsi\n\t"
+        "mov 32(%rsp), %rdx\n\t"
+        "mov 0(%rsp), %rcx\n\t"
+        "mov 16(%rsp), %r8\n\t"
+        "mov 8(%rsp), %r9\n\t" 
+
+        "call mk_syscall_dispatch\n\t" // Call the syscall dispatcher
+
+        // Restore everything except RAX (return value)
+        "popq %r10\n\t"
+        "popq %r9\n\t"
+        "popq %r8\n\t"
+        "popq %rdi\n\t"
+        "popq %rsi\n\t"
+        "popq %rdx\n\t"
+        "popq %rcx\n\t"
+        "popq %rbx\n\t"
+        "addq $8, %rsp\n\t" // No need to pop RAX, it will be used as return value
+
+        "iretq\n\t" // End of syscall handler, return to user mode
+    );
 }
