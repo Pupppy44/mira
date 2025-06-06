@@ -20,8 +20,8 @@ void ms_process_line(void) {
     if (strcmp(ms_command_buffer, "HELP") == 0) {
         mira_print(
             "Available commands:\n"
-            "help  - show this help\n"
-            "clear - clear the screen\n", 0x07
+            "help  - show this help message\n"
+            "about - show details about this shell\n", 0x07
         );
     } else if (strcmp(ms_command_buffer, "ABOUT") == 0) {
         mira_print(
