@@ -4,7 +4,7 @@
 
 #include "../tests/mira_ui.h"
 
-void main() {
+void ms_desktop_entry() {
     // Create a desktop window
     mira_ui_window_t desktop_window = mira_ui_create_window("Mira Desktop", 800, 600);
 

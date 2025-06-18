@@ -15,6 +15,13 @@
         "gdt.h": "c",
         "random": "c",
         "string.h": "c",
-        "desktop.h": "c"
+        "desktop.h": "c",
+        "mira_ui.h": "c",
+        "fs.h": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "stdlib.h": "c",
+        "assets.h": "c"
     }
 }

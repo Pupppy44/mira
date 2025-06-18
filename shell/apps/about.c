@@ -4,7 +4,7 @@
 
 #include "../tests/mira_ui.h"
 
-void main() {
+void ms_about_entry() {
     // Create a window for the "About" information
     mira_ui_window_t about_window = mira_ui_create_window("About Mira", 400, 300);
     

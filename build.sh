@@ -9,17 +9,24 @@ boot_result=$?
 (make -C shell)
 shell_result=$?
 
+# IMPORTANT: Build assets BEFORE the kernel to ensure assets.bin is created
+# for the kernel to use, as it must be able to access the assets
+(python3 -u tools/assets_to_mfs.py)
+mfs_result=$?
+
 (make -C kernel)
 kernel_result=$?
 
-if (test -f boot/boot.bin) && (test -f kernel/kernel.bin) && (test -f shell/shell.bin)
+if (test -f boot/boot.bin) && (test -f kernel/kernel.bin) && (test -f shell/shell.bin) && (test -f build/assets.bin)
 then
     echo "Build successful"
 else
     echo "Build failed"
+    sh clean.sh
+    exit 1
 fi
 
-if [ "$boot_result" = "0" ] && [ "$kernel_result" = "0" ] && [ "$shell_result" = "0" ]
+if [ "$boot_result" = "0" ] && [ "$kernel_result" = "0" ] && [ "$shell_result" = "0" ] && [ "$mfs_result" = "0" ]
 then
     kernel_size=$(wc -c < kernel/kernel.bin)
     kernel_sectors=$(( ($kernel_size + 511) / 512 ))
