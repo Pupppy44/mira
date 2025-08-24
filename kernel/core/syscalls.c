@@ -1,5 +1,6 @@
 #include "../inc/syscalls.h"
 #include "../inc/keyboard.h"
+#include "../inc/mouse.h" // Include the mouse driver header
 #include "../inc/util.h"
 
 // Mira System Call Print Function
@@ -24,12 +25,36 @@ long mk_syscall_get_key(mk_syscall_args *args) {
     return (long)(uint8_t)key[0]; // Return the first character of the key name
 }
 
+// Mira System Call Get Mouse State Function
+// Copies the current mouse state into a user-provided buffer.
+long mk_syscall_get_mouse_state(mk_syscall_args *args) {
+    // The first argument is a pointer to the user-space struct.
+    mk_mouse_state_t* user_state = (mk_mouse_state_t*)args->arg1;
+    
+    if (!user_state) {
+        return -1; // Invalid pointer
+    }
+
+    // Get the current, up-to-date state from the mouse driver.
+    mk_mouse_state_t* kernel_state = mk_mouse_get_state();
+
+    // Copy the kernel's state into the user's buffer.
+    user_state->x = kernel_state->x;
+    user_state->y = kernel_state->y;
+    user_state->left_button = kernel_state->left_button;
+    user_state->right_button = kernel_state->right_button;
+    user_state->middle_button = kernel_state->middle_button;
+
+    return 0; // Success
+}
+
 // Mira System Call Function Definition & Table
 typedef long (*mk_syscall_func)(mk_syscall_args *);
 const mk_syscall_func syscall_table[] = {
     NULL, // Unused
     mk_syscall_print, // Print to VGA text buffer
-    mk_syscall_get_key // Get key from keyboard
+    mk_syscall_get_key, // Get key from keyboard
+    mk_syscall_get_mouse_state, // Get mouse state
 };
 
 // Mira System Call Dispatcher

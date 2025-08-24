@@ -1,5 +1,6 @@
 #include "inc/idt.h"
 #include "inc/keyboard.h"
+#include "inc/mouse.h"
 #include "inc/gdt.h"
 #include "inc/assets.h"
 
@@ -13,6 +14,7 @@ int mk_entry() {
     mk_idt_init();
     mk_assets_init();
     mk_keyboard_init();
+    mk_mouse_init();
 
     // Create a task for the Mira Shell
     // We use a function pointer directly

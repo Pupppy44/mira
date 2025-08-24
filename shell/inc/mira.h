@@ -3,6 +3,16 @@
 
 #include <stdint.h>
 
+// User-space definition of the mouse state structure.
+// ! Must match the kernel's mk_mouse_state_t.
+typedef struct {
+    int32_t x;
+    int32_t y;
+    uint8_t left_button;
+    uint8_t right_button;
+    uint8_t middle_button;
+} mira_mouse_state_t;
+
 // Mira User Mode System Calls //
 
 // Mira Print Function
@@ -28,6 +38,17 @@ char mira_get_key(void) {
           "rcx","rsi","rdi","rdx","r8","r9","r10","r11");
           
     return (char)key;
+}
+
+// Mira Get Mouse State Function
+// Takes a pointer to a mira_mouse_state_t struct to be filled by the kernel.
+static inline void mira_get_mouse_state(mira_mouse_state_t* state_ptr) {
+    __asm__ volatile (
+        "mov $3, %%rax\n\t"  // Syscall number for getting mouse state
+        "mov %0, %%rdi\n\t"  // Pass the pointer as the first argument
+        "int $0x80"
+        : : "r"(state_ptr) : "rax", "rdi"
+    );
 }
 
 #endif

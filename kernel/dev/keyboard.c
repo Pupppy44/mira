@@ -1,6 +1,37 @@
 #include "../inc/keyboard.h"
 #include "../inc/util.h"
 
+// Mouse's packet processing function in mouse.c,
+// forward-declared for the unified poller.
+void mk_mouse_process_packet(uint8_t data);
+
+// Mouse status bit, needed for distinguishing between keyboard and mouse data.
+#define MK_MSTAT_AUX 0x20
+
+// A static buffer to hold the last keyboard scancode received by the poller.
+static uint8_t scancode_buffer = 0;
+
+// Mira Kernel PS/2 Unified Poller
+// This is the gatekeeper for port 0x60. It reads any available data
+// and dispatches it to the correct driver's internal handler.
+// This prevents race conditions between the keyboard and mouse.
+// TODO: Potentially move this to a dedicated polling file
+void mk_ps2_poll_devices() {
+    uint8_t status = mk_util_inb(MK_KBD_STATUS_PORT);
+
+    if (status & MK_KBD_STAT_OBF) { // Data is available
+        uint8_t data = mk_util_inb(MK_KBD_DATA_PORT);
+        
+        if (status & MK_MSTAT_AUX) {
+            // Data is from the mouse
+            mk_mouse_process_packet(data);
+        } else {
+            // Data is from the keyboard
+            scancode_buffer = data;
+        }
+    }
+}
+
 // Mira Kernel Keyboard Wait For Send Ready
 // Waits until the keyboard controller's input buffer is empty.
 static void mk_kbd_wait_for_send_ready() {
@@ -68,63 +99,68 @@ static uint8_t mk_kbd_extended_code_active = 0;
 static const char* last_key_name = NULL; // Last key name to avoid duplicate processing
 
 // Mira Kernel Keyboard Get Key
-// Polls the keyboard controller for a scancode and attempts to map it.
+// Polls devices and attempts to map a scancode if one was received.
 const char* mk_keyboard_get_key() {
-    uint8_t status;
     uint8_t scancode;
     const char* key_name = NULL;
 
-    status = mk_util_inb(MK_KBD_STATUS_PORT);
-
-    if (status & MK_KBD_STAT_OBF) { // Data is available
-        scancode = mk_util_inb(MK_KBD_DATA_PORT);
-
-        if (mk_kbd_extended_code_active) {
-            // E0 means extended key (keys not on the main part of the keyboard).
-            // We need to turn E0 keys into a name or NULL if not mapped.
-            if (!(scancode & 0x80)) { // 0x80 = make code (key press)
-                switch (scancode) {
-                    case 0x48: key_name = "UP_ARROW"; break;
-                    case 0x50: key_name = "DOWN_ARROW"; break;
-                    case 0x4B: key_name = "LEFT_ARROW"; break;
-                    case 0x4D: key_name = "RIGHT_ARROW"; break;
-                    case 0x1D: key_name = "RCTRL"; break;
-                    case 0x38: key_name = "RALT"; break; 
-                    case 0x52: key_name = "INSERT"; break;
-                    case 0x53: key_name = "DELETE"; break;
-                    case 0x47: key_name = "HOME"; break;
-                    case 0x4F: key_name = "END"; break;
-                    case 0x49: key_name = "PAGE_UP"; break;
-                    case 0x51: key_name = "PAGE_DOWN"; break;
-                    case 0x5B: key_name = "LGUI"; break;
-                    case 0x5C: key_name = "RGUI"; break;
-                    case 0x5D: key_name = "APPS"; break;
-                    case 0x35: key_name = "KP/"; break;
-                    case 0x1C: key_name = "\n"; break; // Enter key (right side)
-                    // TODO: Add more extended keys
-                }
-            }
-            mk_kbd_extended_code_active = 0; // Consume the E0 prefix state.
-            return key_name; // Return name or NULL if not mapped/release.
-        }
-
-        if (scancode == 0xE0) {
-            mk_kbd_extended_code_active = 1; // Set state for next byte.
-            return NULL; // No key pressed yet.
-        }
-        
-        // Process non-extended scancodes.
-        if (!(scancode & 0x80)) { // It's a make code (key press).
-            if (scancode < (sizeof(mk_kbd_scancode_set1_map) / sizeof(mk_kbd_scancode_set1_map[0]))) {
-                key_name = mk_kbd_scancode_set1_map[scancode];
-            } else {
-                key_name = "UNKNOWN"; // Scancode out of our map's range.
-            }
-        } else {
-            key_name = NULL;
-        }
-        return key_name;
+    // Call the unified poller to process any pending hardware data.
+    mk_ps2_poll_devices();
+    
+    // Check if the poller received a keyboard scancode.
+    if (scancode_buffer == 0) {
+        return NULL; // No new keyboard data.
     }
 
-    return NULL; // No key pressed or no data available.
+    // A scancode is available. Process it.
+    scancode = scancode_buffer;
+    scancode_buffer = 0; // Consume the scancode from the buffer.
+
+    if (mk_kbd_extended_code_active) {
+        // E0 means extended key (keys not on the main part of the keyboard).
+        // We need to turn E0 keys into a name or NULL if not mapped.
+        if (!(scancode & 0x80)) { // 0x80 = make code (key press)
+            switch (scancode) {
+                case 0x48: key_name = "UP_ARROW"; break;
+                case 0x50: key_name = "DOWN_ARROW"; break;
+                case 0x4B: key_name = "LEFT_ARROW"; break;
+                case 0x4D: key_name = "RIGHT_ARROW"; break;
+                case 0x1D: key_name = "RCTRL"; break;
+                case 0x38: key_name = "RALT"; break; 
+                case 0x52: key_name = "INSERT"; break;
+                case 0x53: key_name = "DELETE"; break;
+                case 0x47: key_name = "HOME"; break;
+                case 0x4F: key_name = "END"; break;
+                case 0x49: key_name = "PAGE_UP"; break;
+                case 0x51: key_name = "PAGE_DOWN"; break;
+                case 0x5B: key_name = "LGUI"; break;
+                case 0x5C: key_name = "RGUI"; break;
+                case 0x5D: key_name = "APPS"; break;
+                case 0x35: key_name = "KP/"; break;
+                case 0x1C: key_name = "\n"; break; // Enter key (right side)
+                // TODO: Add more extended keys
+            }
+        }
+        
+        mk_kbd_extended_code_active = 0; // Consume the E0 prefix state.
+        return key_name; // Return name or NULL if not mapped/release.
+    }
+
+    if (scancode == 0xE0) {
+        mk_kbd_extended_code_active = 1; // Set state for next byte.
+        return NULL; // No key pressed yet.
+    }
+    
+    // Process non-extended scancodes.
+    if (!(scancode & 0x80)) { // It's a make code (key press).
+        if (scancode < (sizeof(mk_kbd_scancode_set1_map) / sizeof(mk_kbd_scancode_set1_map[0]))) {
+            key_name = mk_kbd_scancode_set1_map[scancode];
+        } else {
+            key_name = "UNKNOWN"; // Scancode out of our map's range.
+        }
+    } else {
+        key_name = NULL;
+    }
+
+    return key_name;
 }

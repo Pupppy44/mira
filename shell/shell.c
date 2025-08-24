@@ -7,6 +7,40 @@
 static char ms_command_buffer[MS_CMD_BUFFER_MAX];
 static size_t ms_command_length = 0; 
 
+// Helper function to convert an integer to a string for printing.
+static void itoa(int n, char* buffer) {
+    if (n == 0) {
+        buffer[0] = '0';
+        buffer[1] = '\0';
+        return;
+    }
+
+    int i = 0;
+    int is_negative = 0;
+    if (n < 0) {
+        is_negative = 1;
+        n = -n;
+    }
+
+    while (n != 0) {
+        int rem = n % 10;
+        buffer[i++] = rem + '0';
+        n = n / 10;
+    }
+
+    if (is_negative) {
+        buffer[i++] = '-';
+    }
+
+    for (int start = 0, end = i - 1; start < end; start++, end--) {
+        char temp = buffer[start];
+        buffer[start] = buffer[end];
+        buffer[end] = temp;
+    }
+    
+    buffer[i] = '\0';
+}
+
 // Mira Shell Echo Character
 void ms_echo_char(char character) {
     char temp[2] = { character, 0 };
@@ -21,13 +55,35 @@ void ms_process_line(void) {
         mira_print(
             "Available commands:\n"
             "help  - show this help message\n"
-            "about - show details about this shell\n", 0x07
+            "about - show details about this shell\n"
+            "mouse - get current mouse state\n", 0x07
         );
     } else if (strcmp(ms_command_buffer, "ABOUT") == 0) {
         mira_print(
             "Mira Shell v1.0\n"
             "A simple shell for the Mira operating system.\n", 0x07
         );
+    } else if (strcmp(ms_command_buffer, "MOUSE") == 0) {
+        mira_mouse_state_t state;
+        mira_get_mouse_state(&state);
+
+        char x_buf[12];
+        char y_buf[12];
+        itoa(state.x, x_buf);
+        itoa(state.y, y_buf);
+
+        mira_print("Mouse State -> X: ", 0x07);
+        mira_print(x_buf, 0x07);
+        mira_print(", Y: ", 0x07);
+        mira_print(y_buf, 0x07);
+        mira_print(", L: ", 0x07);
+        mira_print(state.left_button ? "1" : "0", 0x07);
+        mira_print(", R: ", 0x07);
+        mira_print(state.right_button ? "1" : "0", 0x07);
+        mira_print(", M: ", 0x07);
+        mira_print(state.middle_button ? "1" : "0", 0x07);
+        mira_print("\n", 0x07);
+
     } else if (ms_command_length != 0) {
         mira_print("Unknown command: ", 0x07);
         mira_print(ms_command_buffer, 0x07);
