@@ -5,7 +5,7 @@
 jmp begin_real
 
 ; Kernel Size
-kernel_size db 0
+kernel_sectors dw 0
 
 ; 16-bit Mode
 begin_real:
@@ -19,13 +19,14 @@ mov sp, bp
 ; Save the boot drive ID
 mov byte[boot_drive], dl
 
-; Load the second sector (skip printing)
-mov bx, 0x0002
+; Load from LBA 1 (the second sector)
+mov bx, 1
 
 ; Load boot + kernel sectors
-mov cx, [kernel_size]
+mov cx, [kernel_sectors]
 add cx, 2
-mov dx, 0x7E00
+mov edx, 0x7E00 ; This has been switched from dx to edx because we are now using 32-bit
+                ; registers, which is necessary for the new BIOS extended reading code.
 
 ; Load new sectors
 call load_bios

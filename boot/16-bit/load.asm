@@ -6,63 +6,76 @@
 
 [bits 16]
 
-; Define load_sectors
-;   Sector start point in bx
-;   Number of sectors to read in cx
-;   Destination address in dx
+; Disk Address Packet for extended INT 13h
+disk_address_packet:
+    db 0x10         ; Size of packet is 16 bytes
+    db 0            ; Reserved
+.num_sectors:
+    dw 0            ; Number of sectors to transfer
+.buffer_addr:
+    dw 0            ; Transfer buffer offset
+    dw 0            ; Transfer buffer segment
+.lba_start:
+    dq 0            ; 64-bit starting LBA
+
 load_bios:
-    ; Save the registers
-    push ax
-    push bx
-    push cx
-    push dx
+    pushad
 
-    ; Save the number of registers to load for later
-    push cx
+    mov edi, edx ; Store the linear destination address in EDI
 
-    ; For the ATA Read bios utility, the value of ah must be 0x02
-    ; See the BIOS article from Chapter 1.2 for more info
-    mov ah, 0x02
+.load_loop:
+    ; Check if there are any sectors left to read
+    cmp cx, 0
+    je .done
 
-    ; The number of sectors to read must be in al, but our function
-    ; takes it in cl
-    mov al, cl
+    ; Determine number of sectors for this chunk
+    ; Maximum of 64 sectors
+    mov ax, cx
+    cmp ax, 64
+    jbe .set_dap_sectors
+    mov ax, 64
+    
+.set_dap_sectors:
+    mov [disk_address_packet.num_sectors], ax
 
-    ; The sector to read from must be in cl, but our function takes it
-    ; in bl
-    mov cl, bl
+    ; Set up the rest of the DAP
+    push eax ; Save sectors of the current chunk
+    xor eax, eax
+    mov ax, bx
+    mov dword [disk_address_packet.lba_start], eax
+    mov dword [disk_address_packet.lba_start+4], 0
+    pop eax  ; Restore sectors of the current chunk
 
-    ; The destination address must be in bx, but our function takes it
-    ; in dx
-    mov bx, dx
-
-    mov ch, 0x00        ; Cylinder goes in ch
-    mov dh, 0x00        ; Cylinder head goes in dh
-
-    ; Store boot drive in dl
-    mov dl, byte[boot_drive]
+    ; Buffer Address
+    mov edx, edi
+    shr edx, 4  ; edx = edi / 16 (segment)
+    mov [disk_address_packet.buffer_addr+2], dx
+    mov dx, di
+    and dx, 0x000F ; dx = edi % 16 (offset)
+    mov [disk_address_packet.buffer_addr], dx
 
     ; Perform the BIOS disk read
+    mov ah, 0x42
+    mov dl, byte [boot_drive]
+    mov si, disk_address_packet
     int 0x13
-
-    ; Check read error
     jc bios_disk_error
 
-    ; Pop number of sectors to read
-    ; Compare with sectors actually read
-    pop bx
-    cmp al, bl
-    jne bios_disk_error
+    ; Update variables for the next iteration
+    sub cx, ax
+    add bx, ax
 
-    ; Restore the registers
-    pop dx
-    pop cx
-    pop bx
-    pop ax
+    ; Update linear destination address (EDI)
+    shl ax, 9       ; ax = sectors_this_chunk * 512
+    xor edx, edx    ; zero out upper bits of edx
+    mov dx, ax
+    add edi, edx    ; edi += bytes_read
 
-    ; Return
+    jmp .load_loop
+
+.done:
+    popad
     ret
-
 
 bios_disk_error:
     ; Infinite loop to hang

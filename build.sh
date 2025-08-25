@@ -30,7 +30,11 @@ if [ "$boot_result" = "0" ] && [ "$kernel_result" = "0" ] && [ "$shell_result" =
 then
     kernel_size=$(wc -c < kernel/kernel.bin)
     kernel_sectors=$(( ($kernel_size + 511) / 512 ))
-    printf %02x $kernel_sectors | xxd -r -p | dd of=boot/boot.bin bs=1 seek=2 count=1 conv=notrunc
+
+    # * Changed from byte to word, so this gets
+    # * more complex from writing the sector count.
+    printf "\\x$(printf '%02x' $((kernel_sectors & 0xff)))\\x$(printf '%02x' $((kernel_sectors >> 8)))" | \
+    dd of=boot/boot.bin bs=1 seek=2 count=2 conv=notrunc
 
     cp boot/boot.bin ./build/mira.img
     cat kernel/kernel.bin >> build/mira.img
