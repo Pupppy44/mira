@@ -31,6 +31,9 @@ mov edx, 0x7E00 ; This has been switched from dx to edx because we are now using
 ; Load new sectors
 call load_bios
 
+; Initialize VBE graphics mode
+call init_vbe
+
 ; Elevate CPU to 32-bit mode
 call elevate_bios
 
@@ -42,6 +45,7 @@ jmp $               ; Infinite loop
 %include "16-bit/load.asm"
 %include "16-bit/gdt.asm"
 %include "16-bit/elevate.asm"
+%include "16-bit/vbe.asm"
 
 ; DATA STORAGE AREA
 

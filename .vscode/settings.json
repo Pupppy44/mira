@@ -22,6 +22,9 @@
         "string_view": "c",
         "initializer_list": "c",
         "stdlib.h": "c",
-        "assets.h": "c"
+        "assets.h": "c",
+        "ata.h": "c",
+        "vga.h": "c",
+        "vbe.h": "c"
     }
 }

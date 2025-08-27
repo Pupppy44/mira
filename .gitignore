@@ -1,6 +1,9 @@
 # Ignore generated binary file
 build/mira.img
 
+# Ignore editor files/folders
+.vscode/
+
 # Miscellaneous
 *.ini
 *.txt

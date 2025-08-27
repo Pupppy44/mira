@@ -3,18 +3,18 @@
 #include "inc/mouse.h"
 #include "inc/gdt.h"
 #include "inc/assets.h"
+#include "inc/vbe.h"
 
 extern int ms_entry();
 
 int mk_entry() {
-    mk_util_clear_screen();
-
     // Initialize the kernel components
     mk_gdt_init();
     mk_idt_init();
     mk_assets_init();
     mk_keyboard_init();
     mk_mouse_init();
+    mk_vbe_init();
 
     // Create a task for the Mira Shell
     // We use a function pointer directly
