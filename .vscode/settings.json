@@ -25,6 +25,8 @@
         "assets.h": "c",
         "ata.h": "c",
         "vga.h": "c",
-        "vbe.h": "c"
+        "vbe.h": "c",
+        "win.h": "c",
+        "mouse.h": "c"
     }
 }

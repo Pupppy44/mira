@@ -1,9 +1,8 @@
 <div align="center">
     <img src="https://i.ibb.co/prR8ZBhY/mira.png" alt="Mira Logo" />
-
 </div>
 
-# Mira - Experimental 64-Bit Operating System Kernel
+# Mira - 64-Bit Graphical Operating System
 
 ## About
 Mira is a personal exploration into building a 64-bit operating system kernel from the ground up, written primarily in C and Assembly. My focus has been on understanding the foundational aspects of OS design, including boot processes, memory management, and basic task scheduling. While Mira is still in development and not intended for daily use, it represents a deep dive into creating operating systems from scratch.
@@ -57,7 +56,7 @@ qemu-system-x86_64 -cdrom build/mira.img
 While current development is focused on polishing the core kernel, future areas I'd like to explore include:
 * More advanced memory and process management.
 * A simple filesystem (FAT32 or a custom one).
-* Basic device drivers (PS/2 mouse, Sound Blaster 16 audio, etc.).
+* Basic device drivers (Sound Blaster 16 audio, etc.).
 * A minimal graphical user interface with window management.
 * User-mode applications (notepad, simple games).
 * Networking stack (UDP/TCP/IP).

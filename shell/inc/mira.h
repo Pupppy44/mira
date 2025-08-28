@@ -51,4 +51,47 @@ static inline void mira_get_mouse_state(mira_mouse_state_t* state_ptr) {
     );
 }
 
+// Mira Create Window Function
+static inline int mira_create_window(int x, int y, int width, int height) {
+    uint64_t ret = 0;
+
+    // Arguments match the same order as this function's parameters
+    __asm__ volatile (
+        "mov $4, %%rax\n\t"
+        "mov %1, %%rdi\n\t"
+        "mov %2, %%rsi\n\t"
+        "mov %3, %%rdx\n\t"
+        "mov %4, %%rcx\n\t"
+        "int $0x80\n\t"
+        : "=a"(ret)
+        : "r"((uint64_t)x), "r"((uint64_t)y), "r"((uint64_t)width), "r"((uint64_t)height)
+        : "rdi","rsi","rdx","rcx","memory" // ? Clobbers needed because with multiple parameters, compiler may
+                                           // ? otherwise put values in these registers, breaking the manual movs.
+    );
+
+    return ret;
+}
+
+// Mira Update Window Function
+static inline int mira_update_window(int window_id, uint32_t* framebuffer) {
+    uint64_t ret = 0;
+
+    // * In this snippet, we explicitly set the registers for the syscall,
+    // * where the window ID goes to rdi (D) and the framebuffer goes to rsi (S).
+    // * This prevents the compiler from using any other registers for these values.
+    // * Note that mira_create_window doesn't have any issues despite not explicitly
+    // * setting registers because there are more parameters; the compiler is forced
+    // * to "spill" some operands to other registers or the stack, so the manual movs
+    // * actually load the correct values into the syscall registers.
+    __asm__ volatile (
+        "mov $5, %%rax\n\t"
+        "int $0x80\n\t"
+        : "=a"(ret)
+        : "D"((uint64_t)window_id), "S"((uint64_t)framebuffer)
+        : "memory"
+    );
+
+    return (int)ret;
+}
+
 #endif

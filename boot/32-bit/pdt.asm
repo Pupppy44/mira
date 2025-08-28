@@ -8,7 +8,7 @@
 [bits 32]
 
 ; Initialize the page table that identity‑maps the first 4 GiB.
-; Currently, user space is not mapped.
+; Currently, user space is also mapped.
 
 init_pt_protected:
     pushad
@@ -25,17 +25,17 @@ init_pt_protected:
     rep stosd
 
     ; Link PML4[0] to PDPT
-    mov dword [0x100000], 0x101003  ; PDPT @ 0x101000 + Flags
+    mov dword [0x100000], 0x101007  ; PDPT @ 0x101000 + Flags
 
     ; Link PDPT[0-3] to the four Page Directories (1GB each)
-    mov dword [0x101000], 0x102003  ; PD0 @ 0x102000 (0-1GB)
-    mov dword [0x101008], 0x103003  ; PD1 @ 0x103000 (1-2GB)
-    mov dword [0x101010], 0x104003  ; PD2 @ 0x104000 (2-3GB)
-    mov dword [0x101018], 0x105003  ; PD3 @ 0x105000 (3-4GB)
+    mov dword [0x101000], 0x102007  ; PD0 @ 0x102000 (0-1GB)
+    mov dword [0x101008], 0x103007  ; PD1 @ 0x103000 (1-2GB)
+    mov dword [0x101010], 0x104007  ; PD2 @ 0x104000 (2-3GB)
+    mov dword [0x101018], 0x105007  ; PD3 @ 0x105000 (3-4GB)
 
     ; Fill Page Directories to Map 4 GiB
     mov edi, 0x102000               ; Start with PD0
-    mov ebx, 0x00000083             ; ? Flags: Present, R/W, 2MiB Page Each
+    mov ebx, 0x00000087             ; ? Flags: Present, R/W, 2MiB Page Each
     mov ecx, 4 * 512                ; 4 Page Directories * 512 entries each
 .map_loop:
     mov [edi], ebx

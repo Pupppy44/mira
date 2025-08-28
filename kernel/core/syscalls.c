@@ -1,6 +1,7 @@
 #include "../inc/syscalls.h"
 #include "../inc/keyboard.h"
-#include "../inc/mouse.h" // Include the mouse driver header
+#include "../inc/mouse.h"
+#include "../inc/win.h"
 #include "../inc/util.h"
 
 // Mira System Call Print Function
@@ -45,7 +46,29 @@ long mk_syscall_get_mouse_state(mk_syscall_args *args) {
     user_state->right_button = kernel_state->right_button;
     user_state->middle_button = kernel_state->middle_button;
 
-    return 0; // Success
+    return 0;
+}
+
+// Mira System Call Create Window
+long mk_syscall_create_window(mk_syscall_args *args) {
+    int x = (int)args->arg1;
+    int y = (int)args->arg2;
+    int width = (int)args->arg3;
+    int height = (int)args->arg4;
+
+    mk_window* window = mk_create_window(x, y, width, height);
+
+    return (long)window->id;
+}
+
+// Mira System Call Update Window
+long mk_syscall_update_window(mk_syscall_args *args) {
+    int window_id = (int)args->arg1;
+    uint32_t* framebuffer = (uint32_t*)args->arg2;
+
+    mk_update_window(window_id, framebuffer);
+
+    return 0;
 }
 
 // Mira System Call Function Definition & Table
@@ -55,6 +78,8 @@ const mk_syscall_func syscall_table[] = {
     mk_syscall_print, // Print to VGA text buffer
     mk_syscall_get_key, // Get key from keyboard
     mk_syscall_get_mouse_state, // Get mouse state
+    mk_syscall_create_window, // Create a new window
+    mk_syscall_update_window, // Update an existing window
 };
 
 // Mira System Call Dispatcher
